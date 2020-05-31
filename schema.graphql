@@ -1,0 +1,97 @@
+scalar Date
+scalar URL
+
+type User {
+  id: ID!
+  name: String!
+
+  "I can't remember... I _think_ last time I did a project, I handled all the auth outside of graphql. That may not have been right, though?"
+  token: string
+}
+
+type Lobby {
+  id: ID!
+  code: String!
+  "_Perhaps_ we should just change this to admin?"
+  dictator: User!
+  players: [User]!
+  image: URL
+  gameVotes: [GameVote]!
+  gameHistory: [GameHistory]
+
+  dateCreated: Date!
+}
+
+type Game {
+  id: ID!
+  name: String!
+  coverImage: URL
+}
+
+type GameVote {
+  user: Player!
+  game: Game!
+}
+
+"Might want to add a list of games that have been played?"
+type GameHistory {
+  game: Game!
+  players: [User]!
+
+  dateStarted: Date!
+  dateEnded: Date!
+}
+
+type Query {
+  user(id: String!): User
+  lobby(id: String!): Lobby
+  lobbyByCode(code: String!): Lobby
+  games: [Game]!
+}
+
+interface MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+
+input CreateLobbyInput {
+  
+}
+
+type CreateLobbyMutationResponse implements MutationResponse {
+   code: String! 
+   success: Boolean!
+   message: String!
+   lobby: Lobby
+}
+
+input JoinLobbyInput {
+  name: String!
+  lobbyCode: String!
+}
+
+type JoinLobbyMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  lobby: Lobby
+  user: User
+}
+
+input VoteForGameInput {
+  gameId: Id!
+}
+
+type VoteForGameMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  vote: GameVote
+}
+
+type Mutation {
+  createLobby(lobby: CreateLobbyInput): CreateLobbyMutationResponse
+  joinLobby(join: JoinLobbyInput): JoinLobbyMutationResponse
+  voteForGame(vote: VoteForGameInput): VoteForGameMutationResponse
+}

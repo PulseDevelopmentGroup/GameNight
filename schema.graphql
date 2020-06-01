@@ -4,18 +4,18 @@ scalar URL
 type User {
   id: ID!
   name: String!
+  image: URL
 
   "I can't remember... I _think_ last time I did a project, I handled all the auth outside of graphql. That may not have been right, though?"
   token: string
 }
 
-type Lobby {
+type Room {
   id: ID!
   code: String!
   "_Perhaps_ we should just change this to admin?"
   dictator: User!
   players: [User]!
-  image: URL
   gameVotes: [GameVote]!
   gameHistory: [GameHistory]
 
@@ -44,8 +44,8 @@ type GameHistory {
 
 type Query {
   user(id: String!): User
-  lobby(id: String!): Lobby
-  lobbyByCode(code: String!): Lobby
+  Room(id: String!): Room
+  roomByCode(code: String!): Room
   games: [Game]!
 }
 
@@ -59,23 +59,23 @@ input CreateLobbyInput {
   
 }
 
-type CreateLobbyMutationResponse implements MutationResponse {
+type CreateRoomMutationResponse implements MutationResponse {
    code: String! 
    success: Boolean!
    message: String!
-   lobby: Lobby
+   room: Room
 }
 
-input JoinLobbyInput {
+input JoinRoomInput {
   name: String!
-  lobbyCode: String!
+  roomCode: String!
 }
 
-type JoinLobbyMutationResponse implements MutationResponse {
+type JoinRoomMutationResponse implements MutationResponse {
   code: String!
   success: Boolean!
   message: String!
-  lobby: Lobby
+  room: Room
   user: User
 }
 
@@ -91,7 +91,7 @@ type VoteForGameMutationResponse implements MutationResponse {
 }
 
 type Mutation {
-  createLobby(lobby: CreateLobbyInput): CreateLobbyMutationResponse
-  joinLobby(join: JoinLobbyInput): JoinLobbyMutationResponse
+  createRoom(lobby: CreateRoomInput): CreateRoomMutationResponse
+  joinRoom(join: JoinRoomInput): JoinRoomMutationResponse
   voteForGame(vote: VoteForGameInput): VoteForGameMutationResponse
 }

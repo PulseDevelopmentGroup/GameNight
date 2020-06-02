@@ -3,19 +3,17 @@ scalar URL
 
 type User {
   id: ID!
-  name: String!
+  username: String!
+  nickname: String
   image: URL
-
-  "I can't remember... I _think_ last time I did a project, I handled all the auth outside of graphql. That may not have been right, though?"
-  token: string
 }
 
 type Room {
   id: ID!
   code: String!
-  "_Perhaps_ we should just change this to admin?"
-  dictator: User!
-  players: [User]!
+  leader: User!
+  users: [User]!
+
   gameVotes: [GameVote]!
   gameHistory: [GameHistory]
 
@@ -29,14 +27,14 @@ type Game {
 }
 
 type GameVote {
-  user: Player!
+  user: User!
   game: Game!
 }
 
 "Might want to add a list of games that have been played?"
 type GameHistory {
   game: Game!
-  players: [User]!
+  users: [User]!
 
   dateStarted: Date!
   dateEnded: Date!
@@ -44,7 +42,7 @@ type GameHistory {
 
 type Query {
   user(id: String!): User
-  Room(id: String!): Room
+  room(id: String!): Room
   roomByCode(code: String!): Room
   games: [Game]!
 }
@@ -55,19 +53,19 @@ interface MutationResponse {
   message: String!
 }
 
-input CreateLobbyInput {
-  
+input CreateRoomInput {
+  username: String!
 }
 
 type CreateRoomMutationResponse implements MutationResponse {
-   code: String! 
-   success: Boolean!
-   message: String!
-   room: Room
+  code: String!
+  success: Boolean!
+  message: String!
+  room: Room
 }
 
 input JoinRoomInput {
-  name: String!
+  username: String!
   roomCode: String!
 }
 
@@ -80,7 +78,7 @@ type JoinRoomMutationResponse implements MutationResponse {
 }
 
 input VoteForGameInput {
-  gameId: Id!
+  gameId: ID!
 }
 
 type VoteForGameMutationResponse implements MutationResponse {
@@ -91,7 +89,7 @@ type VoteForGameMutationResponse implements MutationResponse {
 }
 
 type Mutation {
-  createRoom(lobby: CreateRoomInput): CreateRoomMutationResponse
+  createRoom(room: CreateRoomInput): CreateRoomMutationResponse
   joinRoom(join: JoinRoomInput): JoinRoomMutationResponse
   voteForGame(vote: VoteForGameInput): VoteForGameMutationResponse
 }

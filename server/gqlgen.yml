@@ -1,0 +1,44 @@
+# Where are all the schema files located? globs are supported eg  src/**/*.graphqls
+schema:
+  - ../schema.graphql
+
+# Where should the generated server code go?
+exec:
+  filename: gql/gql.go
+  package: gql
+
+# Where should any generated models go?
+model:
+  filename: gql/models/generated.go
+  package: models
+
+# Where should the resolver implementations go?
+resolver:
+  layout: follow-schema
+  dir: gql/resolvers
+  package: resolvers
+
+# gqlgen will search for any type names in the schema in these go packages
+# if they match it will use them, otherwise it will generate them.
+autobind:
+  - "github.com/PulseDevelopmentGroup/GameNight/models"
+  - "github.com/PulseDevelopmentGroup/GameNight/gql/models"
+
+# This section declares type mapping between the GraphQL and go type systems
+#
+# The first line in each type will be used as defaults for resolver arguments and
+# modelgen, the others will be allowed when binding to fields. Configure them to
+# your liking
+models:
+  ID:
+    model:
+      - github.com/PulseDevelopmentGroup/GameNight/gql/models.IDScalar
+      - github.com/99designs/gqlgen/graphql.ID
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
+  Int:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32

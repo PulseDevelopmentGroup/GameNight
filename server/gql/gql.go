@@ -143,6 +143,7 @@ type QueryResolver interface {
 type RoomResolver interface {
 	Leader(ctx context.Context, obj *models.Room) (*models.User, error)
 	Users(ctx context.Context, obj *models.Room) ([]*models.User, error)
+	CurrentGame(ctx context.Context, obj *models.Room) (*models.Game, error)
 }
 
 type executableSchema struct {
@@ -557,7 +558,7 @@ type Room {
   leader: User!
   users: [User]!
 
-  currentGame: ID!
+  currentGame: Game!
 
   gameVotes: [GameVote]!
   gameHistory: [GameHistory]
@@ -1858,13 +1859,13 @@ func (ec *executionContext) _Room_currentGame(ctx context.Context, field graphql
 		Object:   "Room",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CurrentGame, nil
+		return ec.resolvers.Room().CurrentGame(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1876,9 +1877,9 @@ func (ec *executionContext) _Room_currentGame(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(primitive.ObjectID)
+	res := resTmp.(*models.Game)
 	fc.Result = res
-	return ec.marshalNID2goᚗmongodbᚗorgᚋmongoᚑdriverᚋbsonᚋprimitiveᚐObjectID(ctx, field.Selections, res)
+	return ec.marshalNGame2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Room_gameVotes(ctx context.Context, field graphql.CollectedField, obj *models.Room) (ret graphql.Marshaler) {
@@ -2074,9 +2075,9 @@ func (ec *executionContext) _User_nickname(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_image(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
@@ -3779,10 +3780,19 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 				return res
 			})
 		case "currentGame":
-			out.Values[i] = ec._Room_currentGame(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Room_currentGame(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "gameVotes":
 			out.Values[i] = ec._Room_gameVotes(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

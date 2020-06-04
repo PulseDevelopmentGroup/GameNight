@@ -11,10 +11,6 @@ import (
 	"github.com/PulseDevelopmentGroup/GameNight/models"
 )
 
-func (r *mutationResolver) JoinRoom(ctx context.Context, joinInput *models.JoinRoomInput) (*models.JoinRoomMutationResponse, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *mutationResolver) VoteForGame(ctx context.Context, voteInput *models.VoteForGameInput) (*models.VoteForGameMutationResponse, error) {
 	panic(fmt.Errorf("not implemented"))
 }

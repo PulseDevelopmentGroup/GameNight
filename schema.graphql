@@ -14,7 +14,7 @@ type Room {
   leader: User!
   users: [User]!
 
-  currentGame: ID!
+  currentGame: Game!
 
   gameVotes: [GameVote]!
   gameHistory: [GameHistory]

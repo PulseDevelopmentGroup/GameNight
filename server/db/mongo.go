@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PulseDevelopmentGroup/GameNight/models"
+	"go.uber.org/zap"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,30 +15,57 @@ import (
 )
 
 type Client struct {
-	Client *mongo.Client
-	DB     *mongo.Database
+	client *mongo.Client
+	db     *mongo.Database
 
 	UserCollection *mongo.Collection
 	GameCollection *mongo.Collection
 	RoomCollection *mongo.Collection
 }
 
-func New(uri string, timeout time.Duration, database string) (*Client, error) {
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
-	c, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://"+uri))
+type Config struct {
+	Addr     string
+	Port     int
+	Context  context.Context
+	Database string
+}
+
+var (
+	fmtURI = "mongodb://%s:%d"
+	log    *zap.Logger
+)
+
+func New(cfg *Config, log *zap.Logger) (*Client, error) {
+	log = log
+
+	c, err := mongo.Connect(
+		cfg.Context,
+		options.Client().ApplyURI(fmt.Sprintf(fmtURI, cfg.Addr, cfg.Port)),
+	)
 	if err != nil {
 		return &Client{}, err
 	}
 
-	db := c.Database(database)
+	err = c.Ping(context.TODO(), nil)
+	if err != nil {
+		return &Client{}, err
+	}
+
+	log.Info("Sucessfully Connected!")
+
+	db := c.Database(cfg.Database)
 	return &Client{
-		Client: c,
-		DB:     db,
+		client: c,
+		db:     db,
 
 		UserCollection: db.Collection("users"),
 		GameCollection: db.Collection("games"),
 		RoomCollection: db.Collection("rooms"),
 	}, nil
+}
+
+func (c *Client) Disconnect(ctx context.Context) error {
+	return c.client.Disconnect(ctx)
 }
 
 /* === Rooms === */

@@ -40,7 +40,7 @@ func New(uri string, timeout time.Duration, database string) (*Client, error) {
 	}, nil
 }
 
-/* === Start Rooms === */
+/* === Rooms === */
 func (c *Client) CreateRoom(leader *models.User) (*models.Room, error) {
 	code := c.getCode(6)
 
@@ -131,7 +131,7 @@ func (c *Client) updateRoom(room *models.Room) (*models.Room, error) {
 
 /* === End Rooms === */
 
-/* === Start Users === */
+/* === Users === */
 
 func (c *Client) CreateUser(username string) (*models.User, error) {
 	if !c.checkUsername(username) {
@@ -166,7 +166,7 @@ func (c *Client) GetUser(id primitive.ObjectID) (*models.User, error) {
 
 /* === End Users === */
 
-/* === Start Games === */
+/* === Games === */
 
 func (c *Client) GetGame(id primitive.ObjectID) (*models.Game, error) {
 	var result *models.Game

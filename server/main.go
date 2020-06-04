@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -14,6 +15,9 @@ import (
 )
 
 func main() {
+	// Randomize seed
+	rand.Seed(time.Now().UnixNano())
+
 	db, err := db.New("127.0.0.1:27017", 10*time.Second, "gamenight")
 	if err != nil {
 		fmt.Println(err)

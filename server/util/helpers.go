@@ -1,6 +1,8 @@
 package util
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 func GenerateRoomCode(length int) string {
 	letters := []rune("abcdefghijklmnopqrstuvwxyz")

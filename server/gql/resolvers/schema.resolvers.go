@@ -39,10 +39,6 @@ func (r *queryResolver) Games(ctx context.Context) ([]*models.Game, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *userResolver) Jwt(ctx context.Context, obj *models.User) (*string, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 // GameHistory returns gql.GameHistoryResolver implementation.
 func (r *Resolver) GameHistory() gql.GameHistoryResolver { return &gameHistoryResolver{r} }
 

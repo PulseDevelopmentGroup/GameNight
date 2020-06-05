@@ -169,8 +169,6 @@ func (c *Client) SetUser(user *models.User, insert bool) error {
 		return err
 	}
 
-	fmt.Printf("%+v", user)
-
 	res, err := c.UserCollection.ReplaceOne(
 		context.TODO(), bson.M{"_id": user.ID}, d,
 		options.Replace().SetUpsert(insert),

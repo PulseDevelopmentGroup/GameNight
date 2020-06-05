@@ -26,6 +26,7 @@ type environment struct {
 	HTTPAddr string `env:"GAMENIGHT_HTTP_ADDR" envDefault:"0.0.0.0"`
 	HTTPPort int    `env:"GAMENIGHT_HTTP_PORT" envDefault:"80"`
 	HTTPDir  string `env:"GAMENIGHT_HTTP_DIR" envDefault:"public/"`
+	HTTPSec  string `env:"GAMENIGHT_HTTP_SECRET" envDefault:"ChangeMe"`
 
 	DBAddr string `env:"GAMENIGHT_DB_ADDR" envDefault:"127.0.0.1"`
 	DBPort int    `env:"GAMENIGHT_DB_PORT" envDefault:"27017"`
@@ -66,7 +67,7 @@ func main() {
 
 	cfg := gql.Config{
 		Resolvers: &resolvers.Resolver{
-			Hub: hub.New(db, logs.Plain.Named("hub")),
+			Hub: hub.New(db, env.HTTPSec, logs.Plain.Named("hub")),
 			DB:  db,
 			Log: logs.Plain.Named("graphql"),
 		},

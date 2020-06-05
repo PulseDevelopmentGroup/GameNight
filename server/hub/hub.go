@@ -3,6 +3,8 @@ package hub
 import (
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
+
 	"github.com/PulseDevelopmentGroup/GameNight/db"
 	"github.com/PulseDevelopmentGroup/GameNight/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,6 +16,8 @@ import (
 type Hub struct {
 	DB  *db.Client
 	Log *zap.Logger
+
+	TokenSecret string
 }
 
 // Most of the functions in the "hub" package could easily be moved to the DB
@@ -22,10 +26,11 @@ type Hub struct {
 
 // New creates a new hub object for performing actions which consist of core app
 // functionality.
-func New(database *db.Client, log *zap.Logger) *Hub {
+func New(database *db.Client, sec string, log *zap.Logger) *Hub {
 	return &Hub{
-		DB:  database,
-		Log: log,
+		DB:          database,
+		Log:         log,
+		TokenSecret: sec,
 	}
 }
 
@@ -101,16 +106,39 @@ func (h *Hub) newRoom(leader *models.User) (*models.Room, error) {
 }
 
 func (h *Hub) newUser(username string) (*models.User, error) {
-	user := &models.User{
-		ID:       primitive.NewObjectID(),
-		Username: username,
-		Nickname: username,
+	id := primitive.NewObjectID()
+
+	token, err := h.newToken(id.Hex())
+	if err != nil {
+		return &models.User{}, err
 	}
 
-	err := h.DB.SetUser(user, true)
+	user := &models.User{
+		ID:       id,
+		Username: username,
+		Nickname: username,
+		JWT:      token,
+	}
+
+	err = h.DB.SetUser(user, true)
 	if err != nil {
 		return user, err
 	}
 
 	return user, nil
+}
+
+func (h *Hub) newToken(userid string) (string, error) {
+	claims := jwt.MapClaims{}
+	claims["authorized"] = true
+	claims["user_id"] = userid
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+
+	at := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err := at.SignedString([]byte(h.TokenSecret))
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }

@@ -27,10 +27,7 @@ func (c *Client) CheckRoomCode(code string) bool {
 		context.TODO(), bson.M{"code": code},
 	)
 
-	if n != 0 {
-		return true
-	}
-	return false
+	return n != 0
 }
 
 // CheckUsername checks the supplied username against all the usernames already
@@ -41,8 +38,5 @@ func (c *Client) CheckUsername(username string) bool {
 		context.TODO(), bson.M{"username": username},
 	)
 
-	if n != 0 {
-		return true
-	}
-	return false
+	return n != 0
 }

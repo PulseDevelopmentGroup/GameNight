@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/99designs/gqlgen v0.11.3
 	github.com/caarlos0/env/v6 v6.2.2
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gofiber/fiber v1.10.5
 	github.com/gofiber/utils v0.0.5 // indirect
 	github.com/graphql-go/graphql v0.7.9

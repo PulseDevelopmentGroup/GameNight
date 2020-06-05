@@ -66,6 +66,10 @@ func (r *roomResolver) CurrentGame(ctx context.Context, obj *models.Room) (*mode
 	return r.DB.GetGame(obj.CurrentGame)
 }
 
+func (r *userResolver) Jwt(ctx context.Context, obj *models.User) (*string, error) {
+	return &obj.JWT, nil
+}
+
 /* === End ObjectID to model resolvers === */
 
 /* === Start Primary Resolvers === */

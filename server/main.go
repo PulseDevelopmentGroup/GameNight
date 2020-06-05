@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -36,7 +38,7 @@ var (
 
 func main() {
 	// Randomize seed
-	//rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 
 	if err := goenv.Parse(&env); err != nil {
 		panic(fmt.Errorf("%+v", err))

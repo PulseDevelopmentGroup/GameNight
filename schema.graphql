@@ -94,7 +94,7 @@ type VoteForGameMutationResponse implements MutationResponse {
 }
 
 type Mutation {
-  createRoom(roomInput: CreateRoomInput): CreateRoomMutationResponse
+  createRoom(createInput: CreateRoomInput): CreateRoomMutationResponse
   joinRoom(joinInput: JoinRoomInput): JoinRoomMutationResponse
   voteForGame(voteInput: VoteForGameInput): VoteForGameMutationResponse
 }

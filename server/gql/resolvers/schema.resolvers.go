@@ -11,7 +11,11 @@ import (
 	"github.com/PulseDevelopmentGroup/GameNight/models"
 )
 
-func (r *createRoomMutationResponseResolver) User(ctx context.Context, obj *models.CreateRoomMutationResponse) (*models.User, error) {
+func (r *gameHistoryResolver) Game(ctx context.Context, obj *models.GameHistory) (*models.Game, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *gameVoteResolver) Game(ctx context.Context, obj *models.GameVote) (*models.Game, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -57,7 +61,6 @@ func (r *Resolver) Room() gql.RoomResolver { return &roomResolver{r} }
 // User returns gql.UserResolver implementation.
 func (r *Resolver) User() gql.UserResolver { return &userResolver{r} }
 
-type createRoomMutationResponseResolver struct{ *Resolver }
 type gameHistoryResolver struct{ *Resolver }
 type gameVoteResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }

@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -16,6 +14,7 @@ import (
 	"github.com/PulseDevelopmentGroup/GameNight/db"
 	"github.com/PulseDevelopmentGroup/GameNight/gql"
 	"github.com/PulseDevelopmentGroup/GameNight/gql/resolvers"
+	"github.com/PulseDevelopmentGroup/GameNight/hub"
 	"github.com/PulseDevelopmentGroup/GameNight/log"
 )
 
@@ -24,6 +23,7 @@ type environment struct {
 
 	HTTPAddr string `env:"GAMENIGHT_HTTP_ADDR" envDefault:"0.0.0.0"`
 	HTTPPort int    `env:"GAMENIGHT_HTTP_PORT" envDefault:"80"`
+	HTTPDir  string `env:"GAMENIGHT_HTTP_DIR" envDefault:"public/"`
 
 	DBAddr string `env:"GAMENIGHT_DB_ADDR" envDefault:"127.0.0.1"`
 	DBPort int    `env:"GAMENIGHT_DB_PORT" envDefault:"27017"`
@@ -36,7 +36,7 @@ var (
 
 func main() {
 	// Randomize seed
-	rand.Seed(time.Now().UnixNano())
+	//rand.Seed(time.Now().UnixNano())
 
 	if err := goenv.Parse(&env); err != nil {
 		panic(fmt.Errorf("%+v", err))
@@ -64,6 +64,7 @@ func main() {
 
 	cfg := gql.Config{
 		Resolvers: &resolvers.Resolver{
+			Hub: hub.New(db, logs.Plain.Named("hub")),
 			DB:  db,
 			Log: logs.Plain.Named("graphql"),
 		},
@@ -82,6 +83,8 @@ func main() {
 			playground.Handler("GameNight", "/query")(ctx.Fasthttp)
 		})
 	}
+
+	app.Static("/", env.HTTPDir)
 
 	listen := fmt.Sprintf("%s:%d", env.HTTPAddr, env.HTTPPort)
 	logs.Sugar.Infof("Listening for requests at %s", listen)

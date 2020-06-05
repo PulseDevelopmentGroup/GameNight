@@ -38,7 +38,6 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	CreateRoomMutationResponse() CreateRoomMutationResponseResolver
 	GameHistory() GameHistoryResolver
 	GameVote() GameVoteResolver
 	Mutation() MutationResolver
@@ -86,7 +85,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateRoom  func(childComplexity int, roomInput *models.CreateRoomInput) int
+		CreateRoom  func(childComplexity int, createInput *models.CreateRoomInput) int
 		JoinRoom    func(childComplexity int, joinInput *models.JoinRoomInput) int
 		VoteForGame func(childComplexity int, voteInput *models.VoteForGameInput) int
 	}
@@ -125,9 +124,6 @@ type ComplexityRoot struct {
 	}
 }
 
-type CreateRoomMutationResponseResolver interface {
-	User(ctx context.Context, obj *models.CreateRoomMutationResponse) (*models.User, error)
-}
 type GameHistoryResolver interface {
 	Game(ctx context.Context, obj *models.GameHistory) (*models.Game, error)
 	Users(ctx context.Context, obj *models.GameHistory) ([]*models.User, error)
@@ -137,7 +133,7 @@ type GameVoteResolver interface {
 	Game(ctx context.Context, obj *models.GameVote) (*models.Game, error)
 }
 type MutationResolver interface {
-	CreateRoom(ctx context.Context, roomInput *models.CreateRoomInput) (*models.CreateRoomMutationResponse, error)
+	CreateRoom(ctx context.Context, createInput *models.CreateRoomInput) (*models.CreateRoomMutationResponse, error)
 	JoinRoom(ctx context.Context, joinInput *models.JoinRoomInput) (*models.JoinRoomMutationResponse, error)
 	VoteForGame(ctx context.Context, voteInput *models.VoteForGameInput) (*models.VoteForGameMutationResponse, error)
 }
@@ -314,7 +310,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateRoom(childComplexity, args["roomInput"].(*models.CreateRoomInput)), true
+		return e.complexity.Mutation.CreateRoom(childComplexity, args["createInput"].(*models.CreateRoomInput)), true
 
 	case "Mutation.joinRoom":
 		if e.complexity.Mutation.JoinRoom == nil {
@@ -662,7 +658,7 @@ type VoteForGameMutationResponse implements MutationResponse {
 }
 
 type Mutation {
-  createRoom(roomInput: CreateRoomInput): CreateRoomMutationResponse
+  createRoom(createInput: CreateRoomInput): CreateRoomMutationResponse
   joinRoom(joinInput: JoinRoomInput): JoinRoomMutationResponse
   voteForGame(voteInput: VoteForGameInput): VoteForGameMutationResponse
 }
@@ -678,13 +674,13 @@ func (ec *executionContext) field_Mutation_createRoom_args(ctx context.Context, 
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *models.CreateRoomInput
-	if tmp, ok := rawArgs["roomInput"]; ok {
+	if tmp, ok := rawArgs["createInput"]; ok {
 		arg0, err = ec.unmarshalOCreateRoomInput2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐCreateRoomInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["roomInput"] = arg0
+	args["createInput"] = arg0
 	return args, nil
 }
 
@@ -952,13 +948,13 @@ func (ec *executionContext) _CreateRoomMutationResponse_user(ctx context.Context
 		Object:   "CreateRoomMutationResponse",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.CreateRoomMutationResponse().User(rctx, obj)
+		return obj.User, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1463,7 +1459,7 @@ func (ec *executionContext) _Mutation_createRoom(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateRoom(rctx, args["roomInput"].(*models.CreateRoomInput))
+		return ec.resolvers.Mutation().CreateRoom(rctx, args["createInput"].(*models.CreateRoomInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3500,31 +3496,22 @@ func (ec *executionContext) _CreateRoomMutationResponse(ctx context.Context, sel
 		case "code":
 			out.Values[i] = ec._CreateRoomMutationResponse_code(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "success":
 			out.Values[i] = ec._CreateRoomMutationResponse_success(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "message":
 			out.Values[i] = ec._CreateRoomMutationResponse_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "room":
 			out.Values[i] = ec._CreateRoomMutationResponse_room(ctx, field, obj)
 		case "user":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._CreateRoomMutationResponse_user(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._CreateRoomMutationResponse_user(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

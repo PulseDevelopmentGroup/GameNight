@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/PulseDevelopmentGroup/GameNight/models"
 	"go.uber.org/zap"
@@ -17,6 +16,8 @@ import (
 type Client struct {
 	client *mongo.Client
 	db     *mongo.Database
+
+	log *zap.Logger
 
 	UserCollection *mongo.Collection
 	GameCollection *mongo.Collection
@@ -32,12 +33,11 @@ type Config struct {
 
 var (
 	fmtURI = "mongodb://%s:%d"
-	log    *zap.Logger
 )
 
+// New creates a new Client database connection using the supplied config and
+// logger.
 func New(cfg *Config, log *zap.Logger) (*Client, error) {
-	log = log
-
 	c, err := mongo.Connect(
 		cfg.Context,
 		options.Client().ApplyURI(fmt.Sprintf(fmtURI, cfg.Addr, cfg.Port)),
@@ -57,6 +57,7 @@ func New(cfg *Config, log *zap.Logger) (*Client, error) {
 	return &Client{
 		client: c,
 		db:     db,
+		log:    log,
 
 		UserCollection: db.Collection("users"),
 		GameCollection: db.Collection("games"),
@@ -64,70 +65,65 @@ func New(cfg *Config, log *zap.Logger) (*Client, error) {
 	}, nil
 }
 
+// Disconnect gracefully disconnects from the database
 func (c *Client) Disconnect(ctx context.Context) error {
 	return c.client.Disconnect(ctx)
 }
 
 /* === Rooms === */
-func (c *Client) CreateRoom(leader *models.User) (*models.Room, error) {
-	code := c.getCode(6)
 
-	r := &models.Room{
-		ID:          primitive.NewObjectID(),
-		Code:        code,
-		Leader:      leader.ID,
-		Users:       []primitive.ObjectID{leader.ID},
-		DateCreated: time.Now().Format("01-02-2006"),
-	}
-
-	document, err := bson.Marshal(r)
-	if err != nil {
-		return r, err
-	}
-
-	_, err = c.RoomCollection.InsertOne(context.TODO(), document)
-	if err != nil {
-		return r, err
-	}
-
-	return r, nil
-}
-
-func (c *Client) GetRoomWithCode(code string) (*models.Room, error) {
+// GetRoom accepts either a room code (string) or ID (primitive.ObjectID) and
+// returns any rooms it discovers.
+func (c *Client) GetRoom(room interface{}) (*models.Room, error) {
 	var result *models.Room
 
-	err := c.RoomCollection.FindOne(context.TODO(), bson.M{"code": code}).Decode(&result)
-	return result, err
+	switch r := room.(type) {
+	case primitive.ObjectID:
+		err := c.RoomCollection.FindOne(
+			context.TODO(), bson.M{"_id": room.(primitive.ObjectID)},
+		).Decode(&result)
+		return result, err
+	case string:
+		err := c.RoomCollection.FindOne(
+			context.TODO(), bson.M{"code": room.(string)},
+		).Decode(&result)
+		return result, err
+	default:
+		return &models.Room{}, fmt.Errorf("%T is not an ObjectID or string", r)
+	}
 }
 
-func (c *Client) GetRoomWithID(id primitive.ObjectID) (*models.Room, error) {
-	var result *models.Room
-
-	err := c.RoomCollection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&result)
-	return result, err
-}
-
-func (c *Client) JoinRoom(code string, user *models.User) (*models.Room, error) {
-	room, err := c.GetRoomWithCode(code)
-	if err != nil {
-		return &models.Room{}, fmt.Errorf(
-			"Unable to find room with code %s", code,
-		)
+//TODO: This function may require some troubleshooting
+// SetRoom takes a room model and an insert switch to update a room in the db.
+// If insert is true and a room with a matching ID does not already exist, a new
+// room will be created.
+func (c *Client) SetRoom(room *models.Room, insert bool) error {
+	if insert && c.CheckRoomCode(room.Code) {
+		return fmt.Errorf("room with code %s already exists", room.Code)
 	}
 
-	room.Users = append(room.Users, user.ID)
+	d, err := bson.Marshal(room)
+	if err != nil {
+		return err
+	}
 
-	return c.updateRoom(room)
-}
+	res, err := c.RoomCollection.ReplaceOne(
+		context.TODO(), bson.M{"_id": room.ID}, d,
+		options.Replace().SetUpsert(insert),
+	)
+	if err != nil {
+		return err
+	}
 
-// TODO: This function will need work once this feature is implemented
-func (c *Client) LeaveRoom(room *models.Room, user *models.User) error {
-	//TODO
+	if res.UpsertedCount == 0 && res.MatchedCount == 0 {
+		return fmt.Errorf("no room with ID %s found.", room.ID.Hex())
+	}
+
 	return nil
 }
 
-// TODO: This function will need work once this feature is implemented
-func (c *Client) RemoveRoom(room *models.Room) error {
+// DelRoom removes the supplied room from the collection.
+func (c *Client) DelRoom(room *models.Room) error {
 	_, err := c.RoomCollection.DeleteOne(context.TODO(), bson.M{"_id": room.ID})
 	if err != nil {
 		return err
@@ -135,61 +131,68 @@ func (c *Client) RemoveRoom(room *models.Room) error {
 	return nil
 }
 
-func (c *Client) updateRoom(room *models.Room) (*models.Room, error) {
-	d, err := bson.Marshal(room)
-	if err != nil {
-		return &models.Room{}, err
-	}
-
-	res, err := c.RoomCollection.UpdateOne(
-		context.TODO(), bson.M{"_id": room.ID}, d,
-	)
-	if err != nil {
-		return &models.Room{}, err
-	}
-
-	if res.MatchedCount == 0 {
-		return &models.Room{}, fmt.Errorf(
-			"No room matching ID %s found.", room.ID.Hex(),
-		)
-	}
-
-	return room, nil
-}
-
 /* === End Rooms === */
 
 /* === Users === */
 
-func (c *Client) CreateUser(username string) (*models.User, error) {
-	if !c.checkUsername(username) {
-		return &models.User{}, fmt.Errorf("User already exists")
-	}
-
-	u := &models.User{
-		ID:       primitive.NewObjectID(),
-		Username: username,
-		Nickname: username,
-	}
-
-	document, err := bson.Marshal(u)
-	if err != nil {
-		return u, err
-	}
-
-	_, err = c.UserCollection.InsertOne(context.TODO(), document)
-	if err != nil {
-		return u, err
-	}
-
-	return u, nil
-}
-
-func (c *Client) GetUser(id primitive.ObjectID) (*models.User, error) {
+// GetUser accepts either a room code (string) or ID (primitive.ObjectID) and
+// returns any rooms it discovers.
+func (c *Client) GetUser(user interface{}) (*models.User, error) {
 	var result *models.User
 
-	err := c.UserCollection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&result)
-	return result, err
+	switch u := user.(type) {
+	case primitive.ObjectID:
+		err := c.UserCollection.FindOne(
+			context.TODO(), bson.M{"_id": user.(primitive.ObjectID)},
+		).Decode(&result)
+		return result, err
+	case string:
+		err := c.UserCollection.FindOne(
+			context.TODO(), bson.M{"username": user.(string)},
+		).Decode(&result)
+		return result, err
+	default:
+		return &models.User{}, fmt.Errorf("%T is not an ObjectID or string", u)
+	}
+}
+
+// SetUser takes a user model and an insert switch to update a user in the db.
+// If insert is true and a user with a matching ID does not already exist, a new
+// user will be created.
+func (c *Client) SetUser(user *models.User, insert bool) error {
+	if insert && c.CheckUsername(user.Username) {
+		return fmt.Errorf("user with username %s already exists", user.Username)
+	}
+
+	d, err := bson.Marshal(user)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%+v", user)
+
+	res, err := c.UserCollection.ReplaceOne(
+		context.TODO(), bson.M{"_id": user.ID}, d,
+		options.Replace().SetUpsert(insert),
+	)
+	if err != nil {
+		return err
+	}
+
+	if res.UpsertedCount == 0 && res.MatchedCount == 0 {
+		return fmt.Errorf("no users with ID %s found.", user.ID.Hex())
+	}
+
+	return nil
+}
+
+// DelUser removes the supplied user from the collection.
+func (c *Client) DelUser(user *models.User) error {
+	_, err := c.UserCollection.DeleteOne(context.TODO(), bson.M{"_id": user.ID})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 /* === End Users === */

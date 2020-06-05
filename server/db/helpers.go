@@ -7,24 +7,42 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func (c *Client) getCode(length int) string {
+// NewRoomCode returns a new room code matching the supplied length. Will
+// validate the uniqueness of the code before returning.
+func (c *Client) NewRoomCode(length int) string {
 	code := util.GenerateRoomCode(length)
 
-	// Not handling errors since errors are basiclly meaningless here
-	n, _ := c.RoomCollection.CountDocuments(context.TODO(), bson.M{"code": code})
-
-	if n != 0 {
-		return c.getCode(length)
+	if c.CheckRoomCode(code) {
+		return c.NewRoomCode(length)
 	}
+
 	return code
 }
 
-func (c *Client) checkUsername(username string) bool {
+// CheckRoomCode checks the supplied code against the rooms already in the
+// collection.
+func (c *Client) CheckRoomCode(code string) bool {
 	// Not handling errors since errors are basiclly meaningless here
-	n, _ := c.RoomCollection.CountDocuments(context.TODO(), bson.M{"username": username})
+	n, _ := c.RoomCollection.CountDocuments(
+		context.TODO(), bson.M{"code": code},
+	)
 
 	if n != 0 {
-		return false
+		return true
 	}
-	return true
+	return false
+}
+
+// CheckUsername checks the supplied username against all the usernames already
+// in the collection.
+func (c *Client) CheckUsername(username string) bool {
+	// Not handling errors since errors are basiclly meaningless here
+	n, _ := c.UserCollection.CountDocuments(
+		context.TODO(), bson.M{"username": username},
+	)
+
+	if n != 0 {
+		return true
+	}
+	return false
 }

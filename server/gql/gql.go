@@ -38,11 +38,13 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	CreateRoomMutationResponse() CreateRoomMutationResponseResolver
 	GameHistory() GameHistoryResolver
 	GameVote() GameVoteResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Room() RoomResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
@@ -54,6 +56,7 @@ type ComplexityRoot struct {
 		Message func(childComplexity int) int
 		Room    func(childComplexity int) int
 		Success func(childComplexity int) int
+		User    func(childComplexity int) int
 	}
 
 	Game struct {
@@ -109,6 +112,7 @@ type ComplexityRoot struct {
 	User struct {
 		ID       func(childComplexity int) int
 		Image    func(childComplexity int) int
+		Jwt      func(childComplexity int) int
 		Nickname func(childComplexity int) int
 		Username func(childComplexity int) int
 	}
@@ -121,6 +125,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type CreateRoomMutationResponseResolver interface {
+	User(ctx context.Context, obj *models.CreateRoomMutationResponse) (*models.User, error)
+}
 type GameHistoryResolver interface {
 	Game(ctx context.Context, obj *models.GameHistory) (*models.Game, error)
 	Users(ctx context.Context, obj *models.GameHistory) ([]*models.User, error)
@@ -144,6 +151,9 @@ type RoomResolver interface {
 	Leader(ctx context.Context, obj *models.Room) (*models.User, error)
 	Users(ctx context.Context, obj *models.Room) ([]*models.User, error)
 	CurrentGame(ctx context.Context, obj *models.Room) (*models.Game, error)
+}
+type UserResolver interface {
+	Jwt(ctx context.Context, obj *models.User) (*string, error)
 }
 
 type executableSchema struct {
@@ -188,6 +198,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.CreateRoomMutationResponse.Success(childComplexity), true
+
+	case "CreateRoomMutationResponse.user":
+		if e.complexity.CreateRoomMutationResponse.User == nil {
+			break
+		}
+
+		return e.complexity.CreateRoomMutationResponse.User(childComplexity), true
 
 	case "Game.coverImage":
 		if e.complexity.Game.CoverImage == nil {
@@ -436,6 +453,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Image(childComplexity), true
 
+	case "User.jwt":
+		if e.complexity.User.Jwt == nil {
+			break
+		}
+
+		return e.complexity.User.Jwt(childComplexity), true
+
 	case "User.nickname":
 		if e.complexity.User.Nickname == nil {
 			break
@@ -550,6 +574,8 @@ type User {
   username: String!
   nickname: String
   image: URL
+
+  jwt: String
 }
 
 type Room {
@@ -608,6 +634,7 @@ type CreateRoomMutationResponse implements MutationResponse {
   success: Boolean!
   message: String!
   room: Room
+  user: User
 }
 
 input JoinRoomInput {
@@ -912,6 +939,37 @@ func (ec *executionContext) _CreateRoomMutationResponse_room(ctx context.Context
 	res := resTmp.(*models.Room)
 	fc.Result = res
 	return ec.marshalORoom2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐRoom(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CreateRoomMutationResponse_user(ctx context.Context, field graphql.CollectedField, obj *models.CreateRoomMutationResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CreateRoomMutationResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.CreateRoomMutationResponse().User(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Game_id(ctx context.Context, field graphql.CollectedField, obj *models.Game) (ret graphql.Marshaler) {
@@ -2109,6 +2167,37 @@ func (ec *executionContext) _User_image(ctx context.Context, field graphql.Colle
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOURL2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_jwt(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Jwt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _VoteForGameMutationResponse_code(ctx context.Context, field graphql.CollectedField, obj *models.VoteForGameMutationResponse) (ret graphql.Marshaler) {
@@ -3411,20 +3500,31 @@ func (ec *executionContext) _CreateRoomMutationResponse(ctx context.Context, sel
 		case "code":
 			out.Values[i] = ec._CreateRoomMutationResponse_code(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "success":
 			out.Values[i] = ec._CreateRoomMutationResponse_success(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "message":
 			out.Values[i] = ec._CreateRoomMutationResponse_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "room":
 			out.Values[i] = ec._CreateRoomMutationResponse_room(ctx, field, obj)
+		case "user":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._CreateRoomMutationResponse_user(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3830,17 +3930,28 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._User_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "username":
 			out.Values[i] = ec._User_username(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "nickname":
 			out.Values[i] = ec._User_nickname(ctx, field, obj)
 		case "image":
 			out.Values[i] = ec._User_image(ctx, field, obj)
+		case "jwt":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_jwt(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

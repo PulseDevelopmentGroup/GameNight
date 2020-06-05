@@ -11,6 +11,10 @@ import (
 	"github.com/PulseDevelopmentGroup/GameNight/models"
 )
 
+func (r *createRoomMutationResponseResolver) User(ctx context.Context, obj *models.CreateRoomMutationResponse) (*models.User, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *mutationResolver) VoteForGame(ctx context.Context, voteInput *models.VoteForGameInput) (*models.VoteForGameMutationResponse, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -31,6 +35,10 @@ func (r *queryResolver) Games(ctx context.Context) ([]*models.Game, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *userResolver) Jwt(ctx context.Context, obj *models.User) (*string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // GameHistory returns gql.GameHistoryResolver implementation.
 func (r *Resolver) GameHistory() gql.GameHistoryResolver { return &gameHistoryResolver{r} }
 
@@ -46,8 +54,13 @@ func (r *Resolver) Query() gql.QueryResolver { return &queryResolver{r} }
 // Room returns gql.RoomResolver implementation.
 func (r *Resolver) Room() gql.RoomResolver { return &roomResolver{r} }
 
+// User returns gql.UserResolver implementation.
+func (r *Resolver) User() gql.UserResolver { return &userResolver{r} }
+
+type createRoomMutationResponseResolver struct{ *Resolver }
 type gameHistoryResolver struct{ *Resolver }
 type gameVoteResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type roomResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }

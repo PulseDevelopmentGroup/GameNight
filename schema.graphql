@@ -19,12 +19,35 @@ type Room {
   currentGame: Game!
 
   gameVotes: [GameVote]!
-  gameHistory: [GameHistory]
+  gameHistory: [Game]
 
   dateCreated: Date!
 }
 
 type Game {
+  id: ID!
+  isComlete: Boolean!
+  winners: [User]
+
+  dateStarted: Date!
+  dateEnded: Date
+}
+
+type SypfallGame implements Game {
+  id: ID!
+  isComlete: Boolean!
+  winners: [User]
+
+  players: [SpyfallUser]
+  location: String!
+}
+
+type SpyfallUser implements User {
+  isSpy: Boolean!
+  role: String!
+}
+
+type GameMeta {
   id: ID!
   name: String!
   coverImage: URL
@@ -32,16 +55,7 @@ type Game {
 
 type GameVote {
   user: User!
-  game: Game!
-}
-
-"Might want to add a list of games that have been played?"
-type GameHistory {
-  game: Game!
-  users: [User]!
-
-  dateStarted: Date!
-  dateEnded: Date!
+  game: GameMeta!
 }
 
 type Query {

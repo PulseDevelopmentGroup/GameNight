@@ -6,15 +6,15 @@ require (
 	github.com/99designs/gqlgen v0.11.3
 	github.com/caarlos0/env/v6 v6.2.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/gofiber/fiber v1.10.5
-	github.com/gofiber/utils v0.0.5 // indirect
+	github.com/fasthttp/websocket v1.4.3 // indirect
+	github.com/gofiber/fiber v1.11.1
+	github.com/google/uuid v1.1.1 // indirect
 	github.com/graphql-go/graphql v0.7.9
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/joho/godotenv v1.3.0
-	github.com/klauspost/compress v1.10.7 // indirect
-	github.com/mitchellh/mapstructure v1.3.1 // indirect
+	github.com/klauspost/compress v1.10.8 // indirect
+	github.com/mitchellh/mapstructure v1.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/savsgio/gotils v0.0.0-20200413113635-8c468ce75cca // indirect
 	github.com/valyala/fasthttp v1.14.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.0.1
 	go.mongodb.org/mongo-driver v1.3.4

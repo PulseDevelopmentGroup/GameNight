@@ -10,7 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	goenv "github.com/caarlos0/env/v6"
 	"github.com/gofiber/fiber"
-	_ "github.com/joho/godotenv/autoload"
+
 	"go.uber.org/zap"
 
 	"github.com/PulseDevelopmentGroup/GameNight/db"
@@ -47,16 +47,16 @@ func main() {
 
 	logs, err := log.New(env.Debug)
 	if err != nil {
-		panic(fmt.Errorf("Unable to create new loggers: %v", err))
+		panic(fmt.Errorf("unable to create new loggers: %v", err))
 	}
 	defer logs.Sync()
 
 	logs.Plain.Info("Connecting to DB")
 	db, err := db.New(&db.Config{
-		Addr:     "127.0.0.1",
-		Port:     27017,
+		Addr:     env.DBAddr,
+		Port:     env.DBPort,
 		Context:  context.TODO(),
-		Database: "gamenight",
+		Database: env.DBName,
 	}, logs.Plain.Named("mongo"))
 	if err != nil {
 		logs.Plain.Error(

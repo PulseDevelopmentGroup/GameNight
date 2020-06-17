@@ -1,7 +1,7 @@
 scalar Date
 scalar URL
 
-type User {
+interface User {
   id: ID!
   username: String!
   nickname: String
@@ -24,9 +24,9 @@ type Room {
   dateCreated: Date!
 }
 
-type Game {
+interface Game {
   id: ID!
-  isComlete: Boolean!
+  isComplete: Boolean!
   winners: [User]
 
   dateStarted: Date!
@@ -35,14 +35,24 @@ type Game {
 
 type SypfallGame implements Game {
   id: ID!
-  isComlete: Boolean!
+  isComplete: Boolean!
   winners: [User]
+
+  dateStarted: Date!
+  dateEnded: Date
 
   players: [SpyfallUser]
   location: String!
 }
 
 type SpyfallUser implements User {
+  id: ID!
+  username: String!
+  nickname: String
+  image: URL
+
+  jwt: String
+
   isSpy: Boolean!
   role: String!
 }

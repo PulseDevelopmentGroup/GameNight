@@ -11,7 +11,7 @@ services:
     volumes:
       - ./client:/app
     ports:
-      - ${DEV_CLIENT_PORT}:4000
+      - 4000:4000
     networks:
       - frontend
 
@@ -27,7 +27,7 @@ services:
     env_file:
       - ./server/.docker.env
     ports:
-      - ${DEV_SERVER_PORT}:4001
+      - 4001:4001
     networks:
       - frontend
       - backend
@@ -47,7 +47,7 @@ services:
     container_name: mongo_express
     image: mongo-express
     ports:
-      - ${DEV_MONGOUI_PORT}:4002
+      - 4002:4002
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: developmentpassword

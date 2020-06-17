@@ -1,7 +1,7 @@
 version: "3.8"
 services:
-  frontend:
-    container_name: ui
+  client:
+    container_name: gamenight-client
     build:
       context: ./client
       dockerfile: dev.dockerfile
@@ -11,12 +11,12 @@ services:
     volumes:
       - ./client:/app
     ports:
-      - 4000:4000
+      - ${DEV_CLIENT_PORT}:4000
     networks:
       - frontend
 
-  backend:
-    container_name: gamenight
+  server:
+    container_name: gamenight-server
     build:
       context: ./server
       dockerfile: dev.dockerfile
@@ -27,7 +27,7 @@ services:
     env_file:
       - ./server/.docker.env
     ports:
-      - 4001:4001
+      - ${DEV_SERVER_PORT}:4001
     networks:
       - frontend
       - backend
@@ -47,7 +47,7 @@ services:
     container_name: mongo_express
     image: mongo-express
     ports:
-      - 4002:4002
+      - ${DEV_MONGOUI_PORT}:4002
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: developmentpassword

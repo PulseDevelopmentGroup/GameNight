@@ -2,7 +2,7 @@ import React from "react";
 import { useForm } from "react-hook-form";
 
 export const Welcome = () => {
-  const { register, handleSubmit, errors } = useForm();
+  const { register, handleSubmit /*, errors*/ } = useForm();
 
   const onSubmit = (values: Record<string, any>) => {
     console.log(values);
@@ -10,7 +10,7 @@ export const Welcome = () => {
 
   return (
     <div>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form className="" onSubmit={handleSubmit(onSubmit)}>
         <label>
           Room Code
           <input name="roomCode" ref={register} />

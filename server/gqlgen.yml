@@ -37,6 +37,9 @@ models:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
+  Date:
+    model:
+      - github.com/PulseDevelopmentGroup/GameNight/gql/models.DateScalar
   Int:
     model:
       - github.com/99designs/gqlgen/graphql.Int

@@ -39,14 +39,14 @@ func (h *Hub) CreateRoom(username string) (*models.Room, *models.User, error) {
 	user, err := h.newUser(username)
 	if err != nil {
 		return &models.Room{}, &models.User{}, fmt.Errorf(
-			"Unable to create user: '%s'", err,
+			"unable to create user: '%s'", err,
 		)
 	}
 
 	room, err := h.newRoom(user)
 	if err != nil {
 		return &models.Room{}, user, fmt.Errorf(
-			"Unable to create room: '%s'", err,
+			"unable to create room: '%s'", err,
 		)
 	}
 
@@ -60,14 +60,14 @@ func (h *Hub) JoinRoom(code, username string) (*models.Room, *models.User, error
 	user, err := h.newUser(username)
 	if err != nil {
 		return &models.Room{}, &models.User{}, fmt.Errorf(
-			"Unable to create user: '%s'", err,
+			"unable to create user: '%s'", err,
 		)
 	}
 
 	room, err := h.DB.GetRoom(code)
 	if err != nil {
 		return &models.Room{}, user, fmt.Errorf(
-			"Unable to get room to join: '%s'", err,
+			"unable to get room to join: '%s'", err,
 		)
 	}
 
@@ -76,7 +76,7 @@ func (h *Hub) JoinRoom(code, username string) (*models.Room, *models.User, error
 	err = h.DB.SetRoom(room, false)
 	if err != nil {
 		return room, user, fmt.Errorf(
-			"Unable to update room: '%s'", err,
+			"unable to update room: '%s'", err,
 		)
 	}
 
@@ -92,7 +92,7 @@ func (h *Hub) newRoom(leader *models.User) (*models.Room, error) {
 	room := &models.Room{
 		ID:          primitive.NewObjectID(),
 		Code:        h.DB.NewRoomCode(6),
-		DateCreated: time.Now().Format("01-02-2006"),
+		DateCreated: time.Now(),
 		Leader:      leader.ID,
 		Users:       []primitive.ObjectID{leader.ID},
 	}
@@ -116,8 +116,8 @@ func (h *Hub) newUser(username string) (*models.User, error) {
 	user := &models.User{
 		ID:       id,
 		Username: username,
-		Nickname: username,
-		JWT:      token,
+		Nickname: &username,
+		JWT:      &token,
 	}
 
 	err = h.DB.SetUser(user, true)

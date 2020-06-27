@@ -31,7 +31,7 @@ func UnmarshalIDScalar(v interface{}) (primitive.ObjectID, error) {
 }
 
 /* Date to time.Time */
-var layout string = "2006-01-02T15:04:05.000Z"
+var TimeLayout string = "Jan _2 @ 3:04PM"
 
 func MarshalDateScalar(date time.Time) graphql.Marshaler {
 	return graphql.WriterFunc(func(w io.Writer) {
@@ -42,9 +42,9 @@ func MarshalDateScalar(date time.Time) graphql.Marshaler {
 func UnmarshalDateScalar(v interface{}) (time.Time, error) {
 	switch v := v.(type) {
 	case string:
-		return time.Parse(layout, v)
+		return time.Parse(TimeLayout, v)
 	case *string:
-		return time.Parse(layout, *v)
+		return time.Parse(TimeLayout, *v)
 	default:
 		return time.Time{}, fmt.Errorf("%T is not a string", v)
 	}

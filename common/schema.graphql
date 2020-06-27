@@ -1,13 +1,39 @@
 scalar Date
 scalar URL
 
-interface User {
+type Query {
+  user(id: ID!): User
+  room(id: ID!): Room
+  roomByCode(code: String!): Room
+  games: [GameMeta]!
+}
+
+interface MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+
+type Mutation {
+  createRoom(createInput: CreateRoomInput): CreateRoomMutationResponse
+  joinRoom(joinInput: JoinRoomInput): JoinRoomMutationResponse
+  voteForGame(voteInput: VoteForGameInput): VoteForGameMutationResponse
+}
+
+type User {
   id: ID!
   username: String!
   nickname: String
   image: URL
 
   jwt: String
+
+  player: Player
+}
+
+interface Player {
+  id: ID!
+  user: User!
 }
 
 type Room {
@@ -16,69 +42,12 @@ type Room {
   leader: User!
   users: [User]!
 
-  currentGame: Game!
+  currentGame: Game
 
   gameVotes: [GameVote]!
   gameHistory: [Game]
 
   dateCreated: Date!
-}
-
-interface Game {
-  id: ID!
-  isComplete: Boolean!
-  winners: [User]
-
-  dateStarted: Date!
-  dateEnded: Date
-}
-
-type SypfallGame implements Game {
-  id: ID!
-  isComplete: Boolean!
-  winners: [User]
-
-  dateStarted: Date!
-  dateEnded: Date
-
-  players: [SpyfallUser]
-  location: String!
-}
-
-type SpyfallUser implements User {
-  id: ID!
-  username: String!
-  nickname: String
-  image: URL
-
-  jwt: String
-
-  isSpy: Boolean!
-  role: String!
-}
-
-type GameMeta {
-  id: ID!
-  name: String!
-  coverImage: URL
-}
-
-type GameVote {
-  user: User!
-  game: GameMeta!
-}
-
-type Query {
-  user(id: String!): User
-  room(id: String!): Room
-  roomByCode(code: String!): Room
-  games: [Game]!
-}
-
-interface MutationResponse {
-  code: String!
-  success: Boolean!
-  message: String!
 }
 
 input CreateRoomInput {
@@ -117,8 +86,42 @@ type VoteForGameMutationResponse implements MutationResponse {
   vote: GameVote
 }
 
-type Mutation {
-  createRoom(createInput: CreateRoomInput): CreateRoomMutationResponse
-  joinRoom(joinInput: JoinRoomInput): JoinRoomMutationResponse
-  voteForGame(voteInput: VoteForGameInput): VoteForGameMutationResponse
+interface Game {
+  id: ID!
+  isComplete: Boolean!
+  winners: [User]
+
+  dateStarted: Date!
+  dateEnded: Date
+}
+
+type GameMeta {
+  id: ID!
+  name: String!
+  coverImage: URL
+}
+
+type GameVote {
+  user: User!
+  game: GameMeta!
+}
+
+type SypfallGame implements Game {
+  id: ID!
+  isComplete: Boolean!
+  winners: [User]
+
+  dateStarted: Date!
+  dateEnded: Date
+
+  players: [SpyfallPlayer]
+  location: String!
+}
+
+type SpyfallPlayer implements Player {
+  id: ID!
+  user: User!
+
+  isSpy: Boolean!
+  role: String!
 }

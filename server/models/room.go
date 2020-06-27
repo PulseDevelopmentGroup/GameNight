@@ -1,16 +1,20 @@
 package models
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Room struct {
-	ID          primitive.ObjectID   `json:"id" bson:"_id"`
+	ID          primitive.ObjectID   `json:"id"`
 	Code        string               `json:"code"`
 	Leader      primitive.ObjectID   `json:"leader"`
 	Users       []primitive.ObjectID `json:"users"`
-	CurrentGame primitive.ObjectID   `json:"currentGame"`
-	GameVotes   []GameVote           `json:"gameVotes"`
-	GameHistory []*GameHistory       `json:"gameHistory"`
-	DateCreated string               `json:"dateCreated"`
+	CurrentGame *primitive.ObjectID  `json:"currentGame"`
+	GameVotes   []*GameVote          `json:"gameVotes"`
+	GameHistory []primitive.ObjectID `json:"gameHistory"`
+	DateCreated time.Time            `json:"dateCreated"`
 }
 
 type CreateRoomInput struct {

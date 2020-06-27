@@ -3,9 +3,11 @@ package resolvers
 import (
 	"context"
 
+	"github.com/PulseDevelopmentGroup/GameNight/models"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/PulseDevelopmentGroup/GameNight/db"
 	"github.com/PulseDevelopmentGroup/GameNight/hub"
-	"github.com/PulseDevelopmentGroup/GameNight/models"
 	"go.uber.org/zap"
 )
 
@@ -24,27 +26,12 @@ type Resolver struct {
 // The following resolvers call the database ("db" package) API directly to
 // resolve ObjectIDs.
 
-func (r *gameHistoryResolver) Users(ctx context.Context, obj *models.GameHistory) ([]*models.User, error) {
-	var users []*models.User
-
-	for _, id := range obj.Users {
-		user, err := r.DB.GetUser(id)
-		if err != nil {
-			return users, err
-		}
-
-		users = append(users, user)
-	}
-
-	return users, nil
+func (r *spyfallPlayerResolver) User(ctx context.Context, obj *models.SpyfallPlayer) (*models.User, error) {
+	return r.DB.GetUser(obj.User)
 }
 
 func (r *gameVoteResolver) User(ctx context.Context, obj *models.GameVote) (*models.User, error) {
-	return r.DB.GetUser(*obj.User)
-}
-
-func (r *roomResolver) Leader(ctx context.Context, obj *models.Room) (*models.User, error) {
-	return r.DB.GetUser(obj.Leader)
+	return r.DB.GetUser(obj.User)
 }
 
 func (r *roomResolver) Users(ctx context.Context, obj *models.Room) ([]*models.User, error) {
@@ -62,12 +49,12 @@ func (r *roomResolver) Users(ctx context.Context, obj *models.Room) ([]*models.U
 	return users, nil
 }
 
-func (r *roomResolver) CurrentGame(ctx context.Context, obj *models.Room) (*models.Game, error) {
-	return r.DB.GetGame(obj.CurrentGame)
+func (r *queryResolver) User(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
+	return r.DB.GetUser(id)
 }
 
-func (r *userResolver) Jwt(ctx context.Context, obj *models.User) (*string, error) {
-	return &obj.JWT, nil
+func (r *roomResolver) Leader(ctx context.Context, obj *models.Room) (*models.User, error) {
+	return r.DB.GetUser(obj.Leader)
 }
 
 /* === End ObjectID to model resolvers === */

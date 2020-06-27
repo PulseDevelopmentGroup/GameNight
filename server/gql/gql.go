@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -38,11 +39,12 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	GameHistory() GameHistoryResolver
 	GameVote() GameVoteResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Room() RoomResolver
+	SpyfallPlayer() SpyfallPlayerResolver
+	SypfallGame() SypfallGameResolver
 	User() UserResolver
 }
 
@@ -58,17 +60,10 @@ type ComplexityRoot struct {
 		User    func(childComplexity int) int
 	}
 
-	Game struct {
+	GameMeta struct {
 		CoverImage func(childComplexity int) int
 		ID         func(childComplexity int) int
 		Name       func(childComplexity int) int
-	}
-
-	GameHistory struct {
-		DateEnded   func(childComplexity int) int
-		DateStarted func(childComplexity int) int
-		Game        func(childComplexity int) int
-		Users       func(childComplexity int) int
 	}
 
 	GameVote struct {
@@ -92,9 +87,9 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Games      func(childComplexity int) int
-		Room       func(childComplexity int, id string) int
+		Room       func(childComplexity int, id primitive.ObjectID) int
 		RoomByCode func(childComplexity int, code string) int
-		User       func(childComplexity int, id string) int
+		User       func(childComplexity int, id primitive.ObjectID) int
 	}
 
 	Room struct {
@@ -108,11 +103,29 @@ type ComplexityRoot struct {
 		Users       func(childComplexity int) int
 	}
 
+	SpyfallPlayer struct {
+		ID    func(childComplexity int) int
+		IsSpy func(childComplexity int) int
+		Role  func(childComplexity int) int
+		User  func(childComplexity int) int
+	}
+
+	SypfallGame struct {
+		DateEnded   func(childComplexity int) int
+		DateStarted func(childComplexity int) int
+		ID          func(childComplexity int) int
+		IsComplete  func(childComplexity int) int
+		Location    func(childComplexity int) int
+		Players     func(childComplexity int) int
+		Winners     func(childComplexity int) int
+	}
+
 	User struct {
 		ID       func(childComplexity int) int
 		Image    func(childComplexity int) int
-		Jwt      func(childComplexity int) int
+		JWT      func(childComplexity int) int
 		Nickname func(childComplexity int) int
+		Player   func(childComplexity int) int
 		Username func(childComplexity int) int
 	}
 
@@ -124,13 +137,9 @@ type ComplexityRoot struct {
 	}
 }
 
-type GameHistoryResolver interface {
-	Game(ctx context.Context, obj *models.GameHistory) (*models.Game, error)
-	Users(ctx context.Context, obj *models.GameHistory) ([]*models.User, error)
-}
 type GameVoteResolver interface {
 	User(ctx context.Context, obj *models.GameVote) (*models.User, error)
-	Game(ctx context.Context, obj *models.GameVote) (*models.Game, error)
+	Game(ctx context.Context, obj *models.GameVote) (*models.GameMeta, error)
 }
 type MutationResolver interface {
 	CreateRoom(ctx context.Context, createInput *models.CreateRoomInput) (*models.CreateRoomMutationResponse, error)
@@ -138,18 +147,26 @@ type MutationResolver interface {
 	VoteForGame(ctx context.Context, voteInput *models.VoteForGameInput) (*models.VoteForGameMutationResponse, error)
 }
 type QueryResolver interface {
-	User(ctx context.Context, id string) (*models.User, error)
-	Room(ctx context.Context, id string) (*models.Room, error)
+	User(ctx context.Context, id primitive.ObjectID) (*models.User, error)
+	Room(ctx context.Context, id primitive.ObjectID) (*models.Room, error)
 	RoomByCode(ctx context.Context, code string) (*models.Room, error)
-	Games(ctx context.Context) ([]*models.Game, error)
+	Games(ctx context.Context) ([]*models.GameMeta, error)
 }
 type RoomResolver interface {
 	Leader(ctx context.Context, obj *models.Room) (*models.User, error)
 	Users(ctx context.Context, obj *models.Room) ([]*models.User, error)
-	CurrentGame(ctx context.Context, obj *models.Room) (*models.Game, error)
+	CurrentGame(ctx context.Context, obj *models.Room) (models.Game, error)
+
+	GameHistory(ctx context.Context, obj *models.Room) ([]models.Game, error)
+}
+type SpyfallPlayerResolver interface {
+	User(ctx context.Context, obj *models.SpyfallPlayer) (*models.User, error)
+}
+type SypfallGameResolver interface {
+	Players(ctx context.Context, obj *models.SypfallGame) ([]*models.SpyfallPlayer, error)
 }
 type UserResolver interface {
-	Jwt(ctx context.Context, obj *models.User) (*string, error)
+	Player(ctx context.Context, obj *models.User) (models.Player, error)
 }
 
 type executableSchema struct {
@@ -202,54 +219,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.CreateRoomMutationResponse.User(childComplexity), true
 
-	case "Game.coverImage":
-		if e.complexity.Game.CoverImage == nil {
+	case "GameMeta.coverImage":
+		if e.complexity.GameMeta.CoverImage == nil {
 			break
 		}
 
-		return e.complexity.Game.CoverImage(childComplexity), true
+		return e.complexity.GameMeta.CoverImage(childComplexity), true
 
-	case "Game.id":
-		if e.complexity.Game.ID == nil {
+	case "GameMeta.id":
+		if e.complexity.GameMeta.ID == nil {
 			break
 		}
 
-		return e.complexity.Game.ID(childComplexity), true
+		return e.complexity.GameMeta.ID(childComplexity), true
 
-	case "Game.name":
-		if e.complexity.Game.Name == nil {
+	case "GameMeta.name":
+		if e.complexity.GameMeta.Name == nil {
 			break
 		}
 
-		return e.complexity.Game.Name(childComplexity), true
-
-	case "GameHistory.dateEnded":
-		if e.complexity.GameHistory.DateEnded == nil {
-			break
-		}
-
-		return e.complexity.GameHistory.DateEnded(childComplexity), true
-
-	case "GameHistory.dateStarted":
-		if e.complexity.GameHistory.DateStarted == nil {
-			break
-		}
-
-		return e.complexity.GameHistory.DateStarted(childComplexity), true
-
-	case "GameHistory.game":
-		if e.complexity.GameHistory.Game == nil {
-			break
-		}
-
-		return e.complexity.GameHistory.Game(childComplexity), true
-
-	case "GameHistory.users":
-		if e.complexity.GameHistory.Users == nil {
-			break
-		}
-
-		return e.complexity.GameHistory.Users(childComplexity), true
+		return e.complexity.GameMeta.Name(childComplexity), true
 
 	case "GameVote.game":
 		if e.complexity.GameVote.Game == nil {
@@ -353,7 +342,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Room(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.Room(childComplexity, args["id"].(primitive.ObjectID)), true
 
 	case "Query.roomByCode":
 		if e.complexity.Query.RoomByCode == nil {
@@ -377,7 +366,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.User(childComplexity, args["id"].(primitive.ObjectID)), true
 
 	case "Room.code":
 		if e.complexity.Room.Code == nil {
@@ -435,6 +424,83 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Room.Users(childComplexity), true
 
+	case "SpyfallPlayer.id":
+		if e.complexity.SpyfallPlayer.ID == nil {
+			break
+		}
+
+		return e.complexity.SpyfallPlayer.ID(childComplexity), true
+
+	case "SpyfallPlayer.isSpy":
+		if e.complexity.SpyfallPlayer.IsSpy == nil {
+			break
+		}
+
+		return e.complexity.SpyfallPlayer.IsSpy(childComplexity), true
+
+	case "SpyfallPlayer.role":
+		if e.complexity.SpyfallPlayer.Role == nil {
+			break
+		}
+
+		return e.complexity.SpyfallPlayer.Role(childComplexity), true
+
+	case "SpyfallPlayer.user":
+		if e.complexity.SpyfallPlayer.User == nil {
+			break
+		}
+
+		return e.complexity.SpyfallPlayer.User(childComplexity), true
+
+	case "SypfallGame.dateEnded":
+		if e.complexity.SypfallGame.DateEnded == nil {
+			break
+		}
+
+		return e.complexity.SypfallGame.DateEnded(childComplexity), true
+
+	case "SypfallGame.dateStarted":
+		if e.complexity.SypfallGame.DateStarted == nil {
+			break
+		}
+
+		return e.complexity.SypfallGame.DateStarted(childComplexity), true
+
+	case "SypfallGame.id":
+		if e.complexity.SypfallGame.ID == nil {
+			break
+		}
+
+		return e.complexity.SypfallGame.ID(childComplexity), true
+
+	case "SypfallGame.isComplete":
+		if e.complexity.SypfallGame.IsComplete == nil {
+			break
+		}
+
+		return e.complexity.SypfallGame.IsComplete(childComplexity), true
+
+	case "SypfallGame.location":
+		if e.complexity.SypfallGame.Location == nil {
+			break
+		}
+
+		return e.complexity.SypfallGame.Location(childComplexity), true
+
+	case "SypfallGame.players":
+		if e.complexity.SypfallGame.Players == nil {
+			break
+		}
+
+		return e.complexity.SypfallGame.Players(childComplexity), true
+
+	case "SypfallGame.winners":
+		if e.complexity.SypfallGame.Winners == nil {
+			break
+		}
+
+		return e.complexity.SypfallGame.Winners(childComplexity), true
+
 	case "User.id":
 		if e.complexity.User.ID == nil {
 			break
@@ -450,11 +516,11 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		return e.complexity.User.Image(childComplexity), true
 
 	case "User.jwt":
-		if e.complexity.User.Jwt == nil {
+		if e.complexity.User.JWT == nil {
 			break
 		}
 
-		return e.complexity.User.Jwt(childComplexity), true
+		return e.complexity.User.JWT(childComplexity), true
 
 	case "User.nickname":
 		if e.complexity.User.Nickname == nil {
@@ -462,6 +528,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Nickname(childComplexity), true
+
+	case "User.player":
+		if e.complexity.User.Player == nil {
+			break
+		}
+
+		return e.complexity.User.Player(childComplexity), true
 
 	case "User.username":
 		if e.complexity.User.Username == nil {
@@ -562,8 +635,27 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "../schema.graphql", Input: `scalar Date
+	&ast.Source{Name: "../common/schema.graphql", Input: `scalar Date
 scalar URL
+
+type Query {
+  user(id: ID!): User
+  room(id: ID!): Room
+  roomByCode(code: String!): Room
+  games: [GameMeta]!
+}
+
+interface MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+
+type Mutation {
+  createRoom(createInput: CreateRoomInput): CreateRoomMutationResponse
+  joinRoom(joinInput: JoinRoomInput): JoinRoomMutationResponse
+  voteForGame(voteInput: VoteForGameInput): VoteForGameMutationResponse
+}
 
 type User {
   id: ID!
@@ -572,6 +664,13 @@ type User {
   image: URL
 
   jwt: String
+
+  player: Player
+}
+
+interface Player {
+  id: ID!
+  user: User!
 }
 
 type Room {
@@ -580,45 +679,12 @@ type Room {
   leader: User!
   users: [User]!
 
-  currentGame: Game!
+  currentGame: Game
 
   gameVotes: [GameVote]!
-  gameHistory: [GameHistory]
+  gameHistory: [Game]
 
   dateCreated: Date!
-}
-
-type Game {
-  id: ID!
-  name: String!
-  coverImage: URL
-}
-
-type GameVote {
-  user: User!
-  game: Game!
-}
-
-"Might want to add a list of games that have been played?"
-type GameHistory {
-  game: Game!
-  users: [User]!
-
-  dateStarted: Date!
-  dateEnded: Date!
-}
-
-type Query {
-  user(id: String!): User
-  room(id: String!): Room
-  roomByCode(code: String!): Room
-  games: [Game]!
-}
-
-interface MutationResponse {
-  code: String!
-  success: Boolean!
-  message: String!
 }
 
 input CreateRoomInput {
@@ -657,10 +723,44 @@ type VoteForGameMutationResponse implements MutationResponse {
   vote: GameVote
 }
 
-type Mutation {
-  createRoom(createInput: CreateRoomInput): CreateRoomMutationResponse
-  joinRoom(joinInput: JoinRoomInput): JoinRoomMutationResponse
-  voteForGame(voteInput: VoteForGameInput): VoteForGameMutationResponse
+interface Game {
+  id: ID!
+  isComplete: Boolean!
+  winners: [User]
+
+  dateStarted: Date!
+  dateEnded: Date
+}
+
+type GameMeta {
+  id: ID!
+  name: String!
+  coverImage: URL
+}
+
+type GameVote {
+  user: User!
+  game: GameMeta!
+}
+
+type SypfallGame implements Game {
+  id: ID!
+  isComplete: Boolean!
+  winners: [User]
+
+  dateStarted: Date!
+  dateEnded: Date
+
+  players: [SpyfallPlayer]
+  location: String!
+}
+
+type SpyfallPlayer implements Player {
+  id: ID!
+  user: User!
+
+  isSpy: Boolean!
+  role: String!
 }
 `, BuiltIn: false},
 }
@@ -743,9 +843,9 @@ func (ec *executionContext) field_Query_roomByCode_args(ctx context.Context, raw
 func (ec *executionContext) field_Query_room_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 primitive.ObjectID
 	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2goᚗmongodbᚗorgᚋmongoᚑdriverᚋbsonᚋprimitiveᚐObjectID(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -757,9 +857,9 @@ func (ec *executionContext) field_Query_room_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 primitive.ObjectID
 	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2goᚗmongodbᚗorgᚋmongoᚑdriverᚋbsonᚋprimitiveᚐObjectID(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -968,7 +1068,7 @@ func (ec *executionContext) _CreateRoomMutationResponse_user(ctx context.Context
 	return ec.marshalOUser2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Game_id(ctx context.Context, field graphql.CollectedField, obj *models.Game) (ret graphql.Marshaler) {
+func (ec *executionContext) _GameMeta_id(ctx context.Context, field graphql.CollectedField, obj *models.GameMeta) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -976,7 +1076,7 @@ func (ec *executionContext) _Game_id(ctx context.Context, field graphql.Collecte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Game",
+		Object:   "GameMeta",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1002,7 +1102,7 @@ func (ec *executionContext) _Game_id(ctx context.Context, field graphql.Collecte
 	return ec.marshalNID2goᚗmongodbᚗorgᚋmongoᚑdriverᚋbsonᚋprimitiveᚐObjectID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Game_name(ctx context.Context, field graphql.CollectedField, obj *models.Game) (ret graphql.Marshaler) {
+func (ec *executionContext) _GameMeta_name(ctx context.Context, field graphql.CollectedField, obj *models.GameMeta) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1010,7 +1110,7 @@ func (ec *executionContext) _Game_name(ctx context.Context, field graphql.Collec
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Game",
+		Object:   "GameMeta",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1036,7 +1136,7 @@ func (ec *executionContext) _Game_name(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Game_coverImage(ctx context.Context, field graphql.CollectedField, obj *models.Game) (ret graphql.Marshaler) {
+func (ec *executionContext) _GameMeta_coverImage(ctx context.Context, field graphql.CollectedField, obj *models.GameMeta) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1044,7 +1144,7 @@ func (ec *executionContext) _Game_coverImage(ctx context.Context, field graphql.
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Game",
+		Object:   "GameMeta",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1065,142 +1165,6 @@ func (ec *executionContext) _Game_coverImage(ctx context.Context, field graphql.
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOURL2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _GameHistory_game(ctx context.Context, field graphql.CollectedField, obj *models.GameHistory) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "GameHistory",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.GameHistory().Game(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*models.Game)
-	fc.Result = res
-	return ec.marshalNGame2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _GameHistory_users(ctx context.Context, field graphql.CollectedField, obj *models.GameHistory) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "GameHistory",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.GameHistory().Users(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*models.User)
-	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _GameHistory_dateStarted(ctx context.Context, field graphql.CollectedField, obj *models.GameHistory) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "GameHistory",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DateStarted, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNDate2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _GameHistory_dateEnded(ctx context.Context, field graphql.CollectedField, obj *models.GameHistory) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "GameHistory",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DateEnded, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNDate2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _GameVote_user(ctx context.Context, field graphql.CollectedField, obj *models.GameVote) (ret graphql.Marshaler) {
@@ -1266,9 +1230,9 @@ func (ec *executionContext) _GameVote_game(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.Game)
+	res := resTmp.(*models.GameMeta)
 	fc.Result = res
-	return ec.marshalNGame2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, field.Selections, res)
+	return ec.marshalNGameMeta2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameMeta(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _JoinRoomMutationResponse_code(ctx context.Context, field graphql.CollectedField, obj *models.JoinRoomMutationResponse) (ret graphql.Marshaler) {
@@ -1573,7 +1537,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx, args["id"].(string))
+		return ec.resolvers.Query().User(rctx, args["id"].(primitive.ObjectID))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1611,7 +1575,7 @@ func (ec *executionContext) _Query_room(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Room(rctx, args["id"].(string))
+		return ec.resolvers.Query().Room(rctx, args["id"].(primitive.ObjectID))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1692,9 +1656,9 @@ func (ec *executionContext) _Query_games(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.Game)
+	res := resTmp.([]*models.GameMeta)
 	fc.Result = res
-	return ec.marshalNGame2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, field.Selections, res)
+	return ec.marshalNGameMeta2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameMeta(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1926,14 +1890,11 @@ func (ec *executionContext) _Room_currentGame(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.Game)
+	res := resTmp.(models.Game)
 	fc.Result = res
-	return ec.marshalNGame2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, field.Selections, res)
+	return ec.marshalOGame2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Room_gameVotes(ctx context.Context, field graphql.CollectedField, obj *models.Room) (ret graphql.Marshaler) {
@@ -1965,9 +1926,9 @@ func (ec *executionContext) _Room_gameVotes(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]models.GameVote)
+	res := resTmp.([]*models.GameVote)
 	fc.Result = res
-	return ec.marshalNGameVote2ᚕgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameVote(ctx, field.Selections, res)
+	return ec.marshalNGameVote2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameVote(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Room_gameHistory(ctx context.Context, field graphql.CollectedField, obj *models.Room) (ret graphql.Marshaler) {
@@ -1981,13 +1942,13 @@ func (ec *executionContext) _Room_gameHistory(ctx context.Context, field graphql
 		Object:   "Room",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.GameHistory, nil
+		return ec.resolvers.Room().GameHistory(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1996,9 +1957,9 @@ func (ec *executionContext) _Room_gameHistory(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*models.GameHistory)
+	res := resTmp.([]models.Game)
 	fc.Result = res
-	return ec.marshalOGameHistory2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameHistory(ctx, field.Selections, res)
+	return ec.marshalOGame2ᚕgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Room_dateCreated(ctx context.Context, field graphql.CollectedField, obj *models.Room) (ret graphql.Marshaler) {
@@ -2030,9 +1991,374 @@ func (ec *executionContext) _Room_dateCreated(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNDate2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SpyfallPlayer_id(ctx context.Context, field graphql.CollectedField, obj *models.SpyfallPlayer) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SpyfallPlayer",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(primitive.ObjectID)
+	fc.Result = res
+	return ec.marshalNID2goᚗmongodbᚗorgᚋmongoᚑdriverᚋbsonᚋprimitiveᚐObjectID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SpyfallPlayer_user(ctx context.Context, field graphql.CollectedField, obj *models.SpyfallPlayer) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SpyfallPlayer",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SpyfallPlayer().User(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SpyfallPlayer_isSpy(ctx context.Context, field graphql.CollectedField, obj *models.SpyfallPlayer) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SpyfallPlayer",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsSpy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SpyfallPlayer_role(ctx context.Context, field graphql.CollectedField, obj *models.SpyfallPlayer) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SpyfallPlayer",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Role, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNDate2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SypfallGame_id(ctx context.Context, field graphql.CollectedField, obj *models.SypfallGame) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SypfallGame",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(primitive.ObjectID)
+	fc.Result = res
+	return ec.marshalNID2goᚗmongodbᚗorgᚋmongoᚑdriverᚋbsonᚋprimitiveᚐObjectID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SypfallGame_isComplete(ctx context.Context, field graphql.CollectedField, obj *models.SypfallGame) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SypfallGame",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsComplete, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SypfallGame_winners(ctx context.Context, field graphql.CollectedField, obj *models.SypfallGame) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SypfallGame",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Winners, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]models.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚕgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SypfallGame_dateStarted(ctx context.Context, field graphql.CollectedField, obj *models.SypfallGame) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SypfallGame",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DateStarted, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNDate2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SypfallGame_dateEnded(ctx context.Context, field graphql.CollectedField, obj *models.SypfallGame) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SypfallGame",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DateEnded, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalODate2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SypfallGame_players(ctx context.Context, field graphql.CollectedField, obj *models.SypfallGame) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SypfallGame",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.SypfallGame().Players(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*models.SpyfallPlayer)
+	fc.Result = res
+	return ec.marshalOSpyfallPlayer2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐSpyfallPlayer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SypfallGame_location(ctx context.Context, field graphql.CollectedField, obj *models.SypfallGame) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "SypfallGame",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Location, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
@@ -2129,9 +2455,9 @@ func (ec *executionContext) _User_nickname(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_image(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
@@ -2176,13 +2502,13 @@ func (ec *executionContext) _User_jwt(ctx context.Context, field graphql.Collect
 		Object:   "User",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.User().Jwt(rctx, obj)
+		return obj.JWT, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2194,6 +2520,37 @@ func (ec *executionContext) _User_jwt(ctx context.Context, field graphql.Collect
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_player(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Player(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(models.Player)
+	fc.Result = res
+	return ec.marshalOPlayer2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐPlayer(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _VoteForGameMutationResponse_code(ctx context.Context, field graphql.CollectedField, obj *models.VoteForGameMutationResponse) (ret graphql.Marshaler) {
@@ -3448,6 +3805,22 @@ func (ec *executionContext) unmarshalInputVoteForGameInput(ctx context.Context, 
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj models.Game) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case models.SypfallGame:
+		return ec._SypfallGame(ctx, sel, &obj)
+	case *models.SypfallGame:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._SypfallGame(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _MutationResponse(ctx context.Context, sel ast.SelectionSet, obj models1.MutationResponse) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -3473,6 +3846,22 @@ func (ec *executionContext) _MutationResponse(ctx context.Context, sel ast.Selec
 			return graphql.Null
 		}
 		return ec._VoteForGameMutationResponse(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _Player(ctx context.Context, sel ast.SelectionSet, obj models.Player) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case models.SpyfallPlayer:
+		return ec._SpyfallPlayer(ctx, sel, &obj)
+	case *models.SpyfallPlayer:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._SpyfallPlayer(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -3523,89 +3912,29 @@ func (ec *executionContext) _CreateRoomMutationResponse(ctx context.Context, sel
 	return out
 }
 
-var gameImplementors = []string{"Game"}
+var gameMetaImplementors = []string{"GameMeta"}
 
-func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj *models.Game) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, gameImplementors)
+func (ec *executionContext) _GameMeta(ctx context.Context, sel ast.SelectionSet, obj *models.GameMeta) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, gameMetaImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Game")
+			out.Values[i] = graphql.MarshalString("GameMeta")
 		case "id":
-			out.Values[i] = ec._Game_id(ctx, field, obj)
+			out.Values[i] = ec._GameMeta_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "name":
-			out.Values[i] = ec._Game_name(ctx, field, obj)
+			out.Values[i] = ec._GameMeta_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "coverImage":
-			out.Values[i] = ec._Game_coverImage(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var gameHistoryImplementors = []string{"GameHistory"}
-
-func (ec *executionContext) _GameHistory(ctx context.Context, sel ast.SelectionSet, obj *models.GameHistory) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, gameHistoryImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("GameHistory")
-		case "game":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._GameHistory_game(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "users":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._GameHistory_users(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "dateStarted":
-			out.Values[i] = ec._GameHistory_dateStarted(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "dateEnded":
-			out.Values[i] = ec._GameHistory_dateEnded(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			out.Values[i] = ec._GameMeta_coverImage(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3875,9 +4204,6 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Room_currentGame(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "gameVotes":
@@ -3886,9 +4212,126 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "gameHistory":
-			out.Values[i] = ec._Room_gameHistory(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Room_gameHistory(ctx, field, obj)
+				return res
+			})
 		case "dateCreated":
 			out.Values[i] = ec._Room_dateCreated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var spyfallPlayerImplementors = []string{"SpyfallPlayer", "Player"}
+
+func (ec *executionContext) _SpyfallPlayer(ctx context.Context, sel ast.SelectionSet, obj *models.SpyfallPlayer) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, spyfallPlayerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SpyfallPlayer")
+		case "id":
+			out.Values[i] = ec._SpyfallPlayer_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "user":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SpyfallPlayer_user(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "isSpy":
+			out.Values[i] = ec._SpyfallPlayer_isSpy(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "role":
+			out.Values[i] = ec._SpyfallPlayer_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var sypfallGameImplementors = []string{"SypfallGame", "Game"}
+
+func (ec *executionContext) _SypfallGame(ctx context.Context, sel ast.SelectionSet, obj *models.SypfallGame) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sypfallGameImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SypfallGame")
+		case "id":
+			out.Values[i] = ec._SypfallGame_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "isComplete":
+			out.Values[i] = ec._SypfallGame_isComplete(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "winners":
+			out.Values[i] = ec._SypfallGame_winners(ctx, field, obj)
+		case "dateStarted":
+			out.Values[i] = ec._SypfallGame_dateStarted(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "dateEnded":
+			out.Values[i] = ec._SypfallGame_dateEnded(ctx, field, obj)
+		case "players":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SypfallGame_players(ctx, field, obj)
+				return res
+			})
+		case "location":
+			out.Values[i] = ec._SypfallGame_location(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -3929,6 +4372,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "image":
 			out.Values[i] = ec._User_image(ctx, field, obj)
 		case "jwt":
+			out.Values[i] = ec._User_jwt(ctx, field, obj)
+		case "player":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3936,7 +4381,7 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._User_jwt(ctx, field, obj)
+				res = ec._User_player(ctx, field, obj)
 				return res
 			})
 		default:
@@ -4248,12 +4693,12 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNDate2string(ctx context.Context, v interface{}) (string, error) {
-	return graphql.UnmarshalString(v)
+func (ec *executionContext) unmarshalNDate2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	return models1.UnmarshalDateScalar(v)
 }
 
-func (ec *executionContext) marshalNDate2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalString(v)
+func (ec *executionContext) marshalNDate2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := models1.MarshalDateScalar(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4262,11 +4707,11 @@ func (ec *executionContext) marshalNDate2string(ctx context.Context, sel ast.Sel
 	return res
 }
 
-func (ec *executionContext) marshalNGame2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx context.Context, sel ast.SelectionSet, v models.Game) graphql.Marshaler {
-	return ec._Game(ctx, sel, &v)
+func (ec *executionContext) marshalNGameMeta2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameMeta(ctx context.Context, sel ast.SelectionSet, v models.GameMeta) graphql.Marshaler {
+	return ec._GameMeta(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNGame2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx context.Context, sel ast.SelectionSet, v []*models.Game) graphql.Marshaler {
+func (ec *executionContext) marshalNGameMeta2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameMeta(ctx context.Context, sel ast.SelectionSet, v []*models.GameMeta) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4290,7 +4735,7 @@ func (ec *executionContext) marshalNGame2ᚕᚖgithubᚗcomᚋPulseDevelopmentGr
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOGame2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, sel, v[i])
+			ret[i] = ec.marshalOGameMeta2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameMeta(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4303,17 +4748,17 @@ func (ec *executionContext) marshalNGame2ᚕᚖgithubᚗcomᚋPulseDevelopmentGr
 	return ret
 }
 
-func (ec *executionContext) marshalNGame2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx context.Context, sel ast.SelectionSet, v *models.Game) graphql.Marshaler {
+func (ec *executionContext) marshalNGameMeta2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameMeta(ctx context.Context, sel ast.SelectionSet, v *models.GameMeta) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._Game(ctx, sel, v)
+	return ec._GameMeta(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNGameVote2ᚕgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameVote(ctx context.Context, sel ast.SelectionSet, v []models.GameVote) graphql.Marshaler {
+func (ec *executionContext) marshalNGameVote2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameVote(ctx context.Context, sel ast.SelectionSet, v []*models.GameVote) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4337,7 +4782,7 @@ func (ec *executionContext) marshalNGameVote2ᚕgithubᚗcomᚋPulseDevelopmentG
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOGameVote2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameVote(ctx, sel, v[i])
+			ret[i] = ec.marshalOGameVote2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameVote(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4701,22 +5146,37 @@ func (ec *executionContext) marshalOCreateRoomMutationResponse2ᚖgithubᚗcom�
 	return ec._CreateRoomMutationResponse(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOGame2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx context.Context, sel ast.SelectionSet, v models.Game) graphql.Marshaler {
-	return ec._Game(ctx, sel, &v)
+func (ec *executionContext) unmarshalODate2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	return models1.UnmarshalDateScalar(v)
 }
 
-func (ec *executionContext) marshalOGame2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx context.Context, sel ast.SelectionSet, v *models.Game) graphql.Marshaler {
+func (ec *executionContext) marshalODate2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	return models1.MarshalDateScalar(v)
+}
+
+func (ec *executionContext) unmarshalODate2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalODate2timeᚐTime(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalODate2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec.marshalODate2timeᚐTime(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOGame2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx context.Context, sel ast.SelectionSet, v models.Game) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Game(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOGameHistory2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameHistory(ctx context.Context, sel ast.SelectionSet, v models.GameHistory) graphql.Marshaler {
-	return ec._GameHistory(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOGameHistory2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameHistory(ctx context.Context, sel ast.SelectionSet, v []*models.GameHistory) graphql.Marshaler {
+func (ec *executionContext) marshalOGame2ᚕgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx context.Context, sel ast.SelectionSet, v []models.Game) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -4743,7 +5203,7 @@ func (ec *executionContext) marshalOGameHistory2ᚕᚖgithubᚗcomᚋPulseDevelo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOGameHistory2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameHistory(ctx, sel, v[i])
+			ret[i] = ec.marshalOGame2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGame(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4756,11 +5216,15 @@ func (ec *executionContext) marshalOGameHistory2ᚕᚖgithubᚗcomᚋPulseDevelo
 	return ret
 }
 
-func (ec *executionContext) marshalOGameHistory2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameHistory(ctx context.Context, sel ast.SelectionSet, v *models.GameHistory) graphql.Marshaler {
+func (ec *executionContext) marshalOGameMeta2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameMeta(ctx context.Context, sel ast.SelectionSet, v models.GameMeta) graphql.Marshaler {
+	return ec._GameMeta(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOGameMeta2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameMeta(ctx context.Context, sel ast.SelectionSet, v *models.GameMeta) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._GameHistory(ctx, sel, v)
+	return ec._GameMeta(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOGameVote2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐGameVote(ctx context.Context, sel ast.SelectionSet, v models.GameVote) graphql.Marshaler {
@@ -4797,6 +5261,13 @@ func (ec *executionContext) marshalOJoinRoomMutationResponse2ᚖgithubᚗcomᚋP
 	return ec._JoinRoomMutationResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOPlayer2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐPlayer(ctx context.Context, sel ast.SelectionSet, v models.Player) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Player(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalORoom2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐRoom(ctx context.Context, sel ast.SelectionSet, v models.Room) graphql.Marshaler {
 	return ec._Room(ctx, sel, &v)
 }
@@ -4806,6 +5277,57 @@ func (ec *executionContext) marshalORoom2ᚖgithubᚗcomᚋPulseDevelopmentGroup
 		return graphql.Null
 	}
 	return ec._Room(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSpyfallPlayer2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐSpyfallPlayer(ctx context.Context, sel ast.SelectionSet, v models.SpyfallPlayer) graphql.Marshaler {
+	return ec._SpyfallPlayer(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOSpyfallPlayer2ᚕᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐSpyfallPlayer(ctx context.Context, sel ast.SelectionSet, v []*models.SpyfallPlayer) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOSpyfallPlayer2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐSpyfallPlayer(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalOSpyfallPlayer2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐSpyfallPlayer(ctx context.Context, sel ast.SelectionSet, v *models.SpyfallPlayer) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SpyfallPlayer(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
@@ -4856,6 +5378,46 @@ func (ec *executionContext) marshalOURL2ᚖstring(ctx context.Context, sel ast.S
 
 func (ec *executionContext) marshalOUser2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v models.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOUser2ᚕgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v []models.User) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOUser2githubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋPulseDevelopmentGroupᚋGameNightᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {

@@ -3,12 +3,12 @@ package models
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type GameVote struct {
-	User *primitive.ObjectID `json:"user"`
-	Game *primitive.ObjectID `json:"game"`
+	User primitive.ObjectID `json:"user"`
+	Game primitive.ObjectID `json:"game"`
 }
 
 type VoteForGameInput struct {
-	GameID primitive.ObjectID `json:"id" bson:"_id"`
+	GameID primitive.ObjectID `json:"gameId"`
 }
 
 type VoteForGameMutationResponse struct {

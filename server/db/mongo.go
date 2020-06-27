@@ -135,8 +135,8 @@ func (c *Client) DelRoom(room *models.Room) error {
 
 /* === Users === */
 
-// GetUser accepts either a room code (string) or ID (primitive.ObjectID) and
-// returns any rooms it discovers.
+// GetUser accepts either a username (string) or ID (primitive.ObjectID) and
+// returns the user it discovers.
 func (c *Client) GetUser(user interface{}) (*models.User, error) {
 	var result *models.User
 
@@ -196,12 +196,5 @@ func (c *Client) DelUser(user *models.User) error {
 /* === End Users === */
 
 /* === Games === */
-
-func (c *Client) GetGame(id primitive.ObjectID) (*models.Game, error) {
-	var result *models.Game
-
-	err := c.GameCollection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&result)
-	return result, err
-}
 
 /* === End Games === */

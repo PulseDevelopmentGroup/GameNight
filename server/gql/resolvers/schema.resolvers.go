@@ -24,10 +24,6 @@ func (r *queryResolver) Room(ctx context.Context, id primitive.ObjectID) (*model
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) RoomByCode(ctx context.Context, code string) (*models.Room, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *queryResolver) Games(ctx context.Context) ([]*models.GameMeta, error) {
 	panic(fmt.Errorf("not implemented"))
 }

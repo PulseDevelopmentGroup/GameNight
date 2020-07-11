@@ -40,11 +40,12 @@ func (c *Client) Exists(
 // Get gets a document from the supplied collection, decoding it into the
 // supplied result interface (make sure to supply the right one for what you're
 // after!)
+// TODO: Revaluate the necessity of this function
 func (c *Client) Get(
 	collection *mongo.Collection,
-	id primitive.ObjectID, result interface{},
-) error {
-	return collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&result)
+	id primitive.ObjectID,
+) *mongo.SingleResult {
+	return collection.FindOne(context.TODO(), bson.M{"_id": id})
 }
 
 // Set sets a documemt in the supplied collection. If a document with a matching

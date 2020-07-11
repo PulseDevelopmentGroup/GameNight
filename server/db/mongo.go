@@ -84,9 +84,9 @@ func (c *Client) Disconnect(ctx context.Context) error {
 /* === Meta === */
 
 func (c *Client) GetGameMeta(id primitive.ObjectID) (*models.GameMeta, error) {
-	var result *models.GameMeta
+	result := new(models.GameMeta)
 
-	err := c.Get(c.GameMeta, id, result)
+	err := c.Get(c.GameMeta, id).Decode(&result)
 	return result, err
 }
 
@@ -107,13 +107,13 @@ func (c *Client) DelGameMeta(id primitive.ObjectID) error {
 /* === Dict === */
 
 func (c *Client) GetGameDict(gameID primitive.ObjectID) (models.Game, error) {
-	var result models.GameType
+	result := new(models.GameDictEntry)
 
-	if err := c.Get(c.GameDict, gameID, result); err != nil {
+	if err := c.Get(c.GameDict, gameID).Decode(&result); err != nil {
 		return models.NullGame{}, err
 	}
 
-	switch result {
+	switch result.Type {
 	case models.SpyfallGameType:
 		return models.SpyfallGame{}, nil
 	case models.CodenamesGameType:
@@ -141,11 +141,11 @@ func (c *Client) DelGameDict(gameID primitive.ObjectID) error {
 // GetRoom accepts either a room code (string) or ID (primitive.ObjectID) and
 // returns any rooms it discovers.
 func (c *Client) GetRoom(v interface{}) (*models.Room, error) {
-	var result *models.Room
+	result := new(models.Room)
 
 	switch r := v.(type) {
 	case primitive.ObjectID:
-		err := c.Get(c.Rooms, v.(primitive.ObjectID), result)
+		err := c.Get(c.Rooms, v.(primitive.ObjectID)).Decode(&result)
 		return result, err
 	case string:
 		err := c.Rooms.FindOne(
@@ -180,11 +180,11 @@ func (c *Client) DelRoom(room *models.Room) error {
 // GetUser accepts either a username (string) or ID (primitive.ObjectID) and
 // returns the user it discovers.
 func (c *Client) GetUser(v interface{}) (*models.User, error) {
-	var result *models.User
+	result := new(models.User)
 
 	switch u := v.(type) {
 	case primitive.ObjectID:
-		err := c.Get(c.Users, v.(primitive.ObjectID), result)
+		err := c.Get(c.Users, v.(primitive.ObjectID)).Decode(&result)
 		return result, err
 	case string:
 		err := c.Users.FindOne(
@@ -219,8 +219,9 @@ func (c *Client) DelUser(user *models.User) error {
 // GetGame accepts either a game ID (primitive.ObjectID) as
 // well as a result to populate (since a "Game" is inheritly many types).
 // Returns the appropriate game.
+// TODO: This may be broken. Will have to test
 func (c *Client) GetGame(id primitive.ObjectID, game interface{}) error {
-	return c.Get(c.Games, id, game)
+	return c.Get(c.Games, id).Decode(&game)
 }
 
 // SetGame takes a game model and an insert switch to update a game in the db.

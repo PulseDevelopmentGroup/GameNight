@@ -116,4 +116,8 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, joinInput *models.JoinR
 	}, nil
 }
 
+func (r *queryResolver) RoomByCode(ctx context.Context, code string) (*models.Room, error) {
+	return r.DB.GetRoom(code)
+}
+
 /* === End Primary Resolvers === */

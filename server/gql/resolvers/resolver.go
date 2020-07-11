@@ -58,12 +58,12 @@ func (r *roomResolver) Leader(ctx context.Context, obj *models.Room) (*models.Us
 }
 
 func (r *roomResolver) CurrentGame(ctx context.Context, obj *models.Room) (models.Game, error) {
-	game, err := r.DB.GetGameType(obj.CurrentGame)
+	game, err := r.DB.GetGameDict(*obj.CurrentGame)
 	if err != nil {
 		return game, err
 	}
 
-	err = r.DB.GetGame(obj.CurrentGame, game)
+	err = r.DB.GetGame(*obj.CurrentGame, game)
 	if err != nil {
 		return game, err
 	}

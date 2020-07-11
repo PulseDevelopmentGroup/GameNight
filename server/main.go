@@ -70,9 +70,15 @@ func main() {
 	}
 	defer db.Disconnect(context.TODO())
 
+	hub, err := hub.New(db, env.HTTPSec, logs.Plain.Named("hub"))
+	if err != nil {
+		logs.Plain.Error("Cannot create new hub... this is fatal")
+		return
+	}
+
 	cfg := gql.Config{
 		Resolvers: &resolvers.Resolver{
-			Hub: hub.New(db, env.HTTPSec, logs.Plain.Named("hub")),
+			Hub: hub,
 			DB:  db,
 			Log: logs.Plain.Named("graphql"),
 		},

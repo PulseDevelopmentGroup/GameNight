@@ -17,39 +17,40 @@ import (
 func (c *Client) NewRoomCode(length int) string {
 	code := util.GenerateRoomCode(length)
 
-	if c.CheckRoomCode(code) {
+	if c.Exists(c.Rooms, "code", code) {
 		return c.NewRoomCode(length)
 	}
 
 	return code
 }
 
-// CheckRoomCode checks the supplied code against the rooms already in the
-// collection.
-func (c *Client) CheckRoomCode(code string) bool {
+// Exists checks the supplied collection's documents to see if the supplied
+// key-value pair exists.
+func (c *Client) Exists(
+	collection *mongo.Collection,
+	key string, value interface{},
+) bool {
 	// Not handling errors since errors are basiclly meaningless here
-	n, _ := c.RoomCollection.CountDocuments(
-		context.TODO(), bson.M{"code": code},
+	n, _ := collection.CountDocuments(
+		context.TODO(), bson.M{key: value},
 	)
-
 	return n != 0
 }
 
-// CheckUsername checks the supplied username against all the usernames already
-// in the collection.
-func (c *Client) CheckUsername(username string) bool {
-	// Not handling errors since errors are basiclly meaningless here
-	n, err := c.UserCollection.CountDocuments(
-		context.TODO(), bson.M{"username": username},
-	)
-
-	fmt.Println(err)
-
-	return n != 0
+// Get gets a document from the supplied collection, decoding it into the
+// supplied result interface (make sure to supply the right one for what you're
+// after!)
+func (c *Client) Get(
+	collection *mongo.Collection,
+	id primitive.ObjectID, result interface{},
+) error {
+	return collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&result)
 }
 
-func (c *Client) Replace(
-	col *mongo.Collection,
+// Set sets a documemt in the supplied collection. If a document with a matching
+// ID already exists, it updates the document accordingly.
+func (c *Client) Set(
+	collection *mongo.Collection,
 	id primitive.ObjectID,
 	upsert bool, doc interface{},
 ) error {
@@ -58,7 +59,7 @@ func (c *Client) Replace(
 		return err
 	}
 
-	res, err := col.ReplaceOne(
+	res, err := collection.ReplaceOne(
 		context.TODO(), bson.M{"_id": id}, doc,
 		options.Replace().SetUpsert(upsert),
 	)
@@ -70,5 +71,14 @@ func (c *Client) Replace(
 		return fmt.Errorf("no documents with ID %s found. Nothing to update", id.Hex())
 	}
 
+	return nil
+}
+
+// Del removes a document in the supplied collection.
+func (c *Client) Del(collection *mongo.Collection, id primitive.ObjectID) error {
+	_, err := collection.DeleteOne(context.TODO(), bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
 	return nil
 }

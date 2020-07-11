@@ -21,14 +21,9 @@ type GameMeta struct {
 }
 
 /* == Game Dict == */
-type GameDict struct {
-	ID    primitive.ObjectID `json:"id" bson:"_id"`
-	Types []GameDictType     `json:"types"`
-}
-
-type GameDictType struct {
-	ID   primitive.ObjectID `json:"id"`
-	Type GameType           `json:"gameType"`
+type GameDictEntry struct {
+	ID   primitive.ObjectID `json:"id" bson:"_id"`
+	Type GameType           `json:"type"`
 }
 
 type GameType int

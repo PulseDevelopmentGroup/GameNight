@@ -34,6 +34,10 @@ func (r *gameVoteResolver) User(ctx context.Context, obj *models.GameVote) (*mod
 	return r.DB.GetUser(obj.User)
 }
 
+func (r *queryResolver) User(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
+	return r.DB.GetUser(id)
+}
+
 func (r *roomResolver) Users(ctx context.Context, obj *models.Room) ([]*models.User, error) {
 	var users []*models.User
 
@@ -49,12 +53,22 @@ func (r *roomResolver) Users(ctx context.Context, obj *models.Room) ([]*models.U
 	return users, nil
 }
 
-func (r *queryResolver) User(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
-	return r.DB.GetUser(id)
-}
-
 func (r *roomResolver) Leader(ctx context.Context, obj *models.Room) (*models.User, error) {
 	return r.DB.GetUser(obj.Leader)
+}
+
+func (r *roomResolver) CurrentGame(ctx context.Context, obj *models.Room) (models.Game, error) {
+	game, err := r.DB.GetGameType(obj.CurrentGame)
+	if err != nil {
+		return game, err
+	}
+
+	err = r.DB.GetGame(obj.CurrentGame, game)
+	if err != nil {
+		return game, err
+	}
+
+	return game, nil
 }
 
 /* === End ObjectID to model resolvers === */

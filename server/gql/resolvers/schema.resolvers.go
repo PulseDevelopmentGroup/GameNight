@@ -32,15 +32,7 @@ func (r *queryResolver) Games(ctx context.Context) ([]*models.GameMeta, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *roomResolver) CurrentGame(ctx context.Context, obj *models.Room) (models.Game, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *roomResolver) GameHistory(ctx context.Context, obj *models.Room) ([]models.Game, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *sypfallGameResolver) Players(ctx context.Context, obj *models.SypfallGame) ([]*models.SpyfallPlayer, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -63,9 +55,6 @@ func (r *Resolver) Room() gql.RoomResolver { return &roomResolver{r} }
 // SpyfallPlayer returns gql.SpyfallPlayerResolver implementation.
 func (r *Resolver) SpyfallPlayer() gql.SpyfallPlayerResolver { return &spyfallPlayerResolver{r} }
 
-// SypfallGame returns gql.SypfallGameResolver implementation.
-func (r *Resolver) SypfallGame() gql.SypfallGameResolver { return &sypfallGameResolver{r} }
-
 // User returns gql.UserResolver implementation.
 func (r *Resolver) User() gql.UserResolver { return &userResolver{r} }
 
@@ -74,5 +63,4 @@ type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type roomResolver struct{ *Resolver }
 type spyfallPlayerResolver struct{ *Resolver }
-type sypfallGameResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

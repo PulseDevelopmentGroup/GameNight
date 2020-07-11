@@ -106,7 +106,7 @@ type GameVote {
   game: GameMeta!
 }
 
-type SypfallGame implements Game {
+type SpyfallGame implements Game {
   id: ID!
   isComplete: Boolean!
   winners: [User]

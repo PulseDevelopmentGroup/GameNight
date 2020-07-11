@@ -16,12 +16,14 @@ import (
 type Client struct {
 	client *mongo.Client
 	db     *mongo.Database
+	log    *zap.Logger
 
-	log *zap.Logger
+	GameDictID primitive.ObjectID
 
-	UserCollection *mongo.Collection
-	GameCollection *mongo.Collection
-	RoomCollection *mongo.Collection
+	UserCollection   *mongo.Collection
+	GameCollection   *mongo.Collection
+	RoomCollection   *mongo.Collection
+	PlayerCollection *mongo.Collection
 }
 
 type Config struct {
@@ -29,6 +31,8 @@ type Config struct {
 	Port     int
 	Context  context.Context
 	Database string
+	Username string
+	Password string
 }
 
 var (
@@ -40,7 +44,12 @@ var (
 func New(cfg *Config, log *zap.Logger) (*Client, error) {
 	c, err := mongo.Connect(
 		cfg.Context,
-		options.Client().ApplyURI(fmt.Sprintf(fmtURI, cfg.Addr, cfg.Port)),
+		options.Client().ApplyURI(
+			fmt.Sprintf(fmtURI, cfg.Addr, cfg.Port),
+		).SetAuth(options.Credential{
+			Username: cfg.Username,
+			Password: cfg.Password,
+		}),
 	)
 	if err != nil {
 		return &Client{}, err
@@ -59,9 +68,12 @@ func New(cfg *Config, log *zap.Logger) (*Client, error) {
 		db:     db,
 		log:    log,
 
-		UserCollection: db.Collection("users"),
-		GameCollection: db.Collection("games"),
-		RoomCollection: db.Collection("rooms"),
+		GameDictID: primitive.NewObjectID(),
+
+		UserCollection:   db.Collection("users"),
+		GameCollection:   db.Collection("games"),
+		RoomCollection:   db.Collection("rooms"),
+		PlayerCollection: db.Collection("players"),
 	}, nil
 }
 
@@ -74,18 +86,18 @@ func (c *Client) Disconnect(ctx context.Context) error {
 
 // GetRoom accepts either a room code (string) or ID (primitive.ObjectID) and
 // returns any rooms it discovers.
-func (c *Client) GetRoom(room interface{}) (*models.Room, error) {
+func (c *Client) GetRoom(v interface{}) (*models.Room, error) {
 	var result *models.Room
 
-	switch r := room.(type) {
+	switch r := v.(type) {
 	case primitive.ObjectID:
 		err := c.RoomCollection.FindOne(
-			context.TODO(), bson.M{"_id": room.(primitive.ObjectID)},
+			context.TODO(), bson.M{"_id": v.(primitive.ObjectID)},
 		).Decode(&result)
 		return result, err
 	case string:
 		err := c.RoomCollection.FindOne(
-			context.TODO(), bson.M{"code": room.(string)},
+			context.TODO(), bson.M{"code": v.(string)},
 		).Decode(&result)
 		return result, err
 	default:
@@ -102,21 +114,9 @@ func (c *Client) SetRoom(room *models.Room, insert bool) error {
 		return fmt.Errorf("room with code %s already exists", room.Code)
 	}
 
-	d, err := bson.Marshal(room)
+	err := c.Replace(c.RoomCollection, room.ID, insert, room)
 	if err != nil {
 		return err
-	}
-
-	res, err := c.RoomCollection.ReplaceOne(
-		context.TODO(), bson.M{"_id": room.ID}, d,
-		options.Replace().SetUpsert(insert),
-	)
-	if err != nil {
-		return err
-	}
-
-	if res.UpsertedCount == 0 && res.MatchedCount == 0 {
-		return fmt.Errorf("no room with ID %s found.", room.ID.Hex())
 	}
 
 	return nil
@@ -137,18 +137,18 @@ func (c *Client) DelRoom(room *models.Room) error {
 
 // GetUser accepts either a username (string) or ID (primitive.ObjectID) and
 // returns the user it discovers.
-func (c *Client) GetUser(user interface{}) (*models.User, error) {
+func (c *Client) GetUser(v interface{}) (*models.User, error) {
 	var result *models.User
 
-	switch u := user.(type) {
+	switch u := v.(type) {
 	case primitive.ObjectID:
 		err := c.UserCollection.FindOne(
-			context.TODO(), bson.M{"_id": user.(primitive.ObjectID)},
+			context.TODO(), bson.M{"_id": v.(primitive.ObjectID)},
 		).Decode(&result)
 		return result, err
 	case string:
 		err := c.UserCollection.FindOne(
-			context.TODO(), bson.M{"username": user.(string)},
+			context.TODO(), bson.M{"username": v.(string)},
 		).Decode(&result)
 		return result, err
 	default:
@@ -164,21 +164,9 @@ func (c *Client) SetUser(user *models.User, insert bool) error {
 		return fmt.Errorf("user with username %s already exists", user.Username)
 	}
 
-	d, err := bson.Marshal(user)
+	err := c.Replace(c.UserCollection, user.ID, insert, user)
 	if err != nil {
 		return err
-	}
-
-	res, err := c.UserCollection.ReplaceOne(
-		context.TODO(), bson.M{"_id": user.ID}, d,
-		options.Replace().SetUpsert(insert),
-	)
-	if err != nil {
-		return err
-	}
-
-	if res.UpsertedCount == 0 && res.MatchedCount == 0 {
-		return fmt.Errorf("no users with ID %s found.", user.ID.Hex())
 	}
 
 	return nil
@@ -196,5 +184,91 @@ func (c *Client) DelUser(user *models.User) error {
 /* === End Users === */
 
 /* === Games === */
+
+// GetGameType accepts the ID of a game and return's a model of it's type
+func (c *Client) GetGameType(id *primitive.ObjectID) (models.Game, error) {
+	var result models.GameType
+
+	err := c.GameCollection.FindOne(
+		context.TODO(), bson.M{"_id": c.GameDictID, "types.id": id},
+		options.FindOne().SetProjection(bson.M{"types.type": 1}),
+	).Decode(&result)
+
+	if err != nil {
+		return models.NullGame{}, err
+	}
+
+	switch result {
+	case models.SpyfallGameType:
+		return models.SpyfallGame{}, nil
+	case models.CodenamesGameType:
+		fallthrough
+	case models.NullGameType:
+		fallthrough
+	default:
+		return models.NullGame{},
+			fmt.Errorf("game type %v does not exist or is not supported", result)
+	}
+}
+
+// SetGameType accepts the ID of a game and it's type and associates the two in
+// the dictionary.
+func (c *Client) SetGameType(id primitive.ObjectID, gt models.GameType) error {
+	res, err := c.GameCollection.UpdateOne(
+		context.TODO(), bson.M{"_id": c.GameDictID},
+		bson.M{"$push": bson.M{"types": models.GameDictType{ID: id, Type: gt}}},
+	)
+	if err != nil {
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("cannot find game dict matching id: %s", id.Hex())
+	}
+
+	return nil
+}
+
+// GetGame accepts either a game ID (primitive.ObjectID) as
+// well as a result to populate (since a "Game" is inheritly many types).
+// Returns the appropriate game.
+func (c *Client) GetGame(id *primitive.ObjectID, game interface{}) error {
+	err := c.GameCollection.FindOne(
+		context.TODO(), bson.M{"_id": id},
+	).Decode(&game)
+
+	return err
+}
+
+// SetGame takes a game model and an insert switch to update a game in the db.
+// If insert is true and a game with a matching ID does not already exist, a new
+// game will be created.
+func (c *Client) SetGame(id primitive.ObjectID, game *models.Game, insert bool) error {
+	// TODO:
+	return nil
+}
+
+// DelRoom removes the supplied room from the collection.
+func (c *Client) DelGame(id primitive.ObjectID) error {
+	/* Remove the ID/game type association from the dictionary */
+	res, err := c.GameCollection.UpdateOne(
+		context.TODO(), bson.M{"_id": c.GameDictID},
+		bson.M{"$pull": bson.M{"types": bson.M{"id": id}}},
+	)
+	if err != nil {
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("cannot find game dict matching id: %s", id.Hex())
+	}
+
+	/* Remove the game itself */
+	_, err = c.GameCollection.DeleteOne(context.TODO(), bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 /* === End Games === */

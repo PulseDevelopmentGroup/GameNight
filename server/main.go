@@ -9,8 +9,8 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	goenv "github.com/caarlos0/env/v6"
-	"github.com/gofiber/fiber"
 	"github.com/gofiber/cors"
+	"github.com/gofiber/fiber"
 
 	"go.uber.org/zap"
 
@@ -32,6 +32,8 @@ type environment struct {
 	DBAddr string `env:"GAMENIGHT_DB_ADDR" envDefault:"127.0.0.1"`
 	DBPort int    `env:"GAMENIGHT_DB_PORT" envDefault:"27017"`
 	DBName string `env:"GAMENIGHT_DB_NAME" envDefault:"gamenight"`
+	DBUser string `env:"GAMENIGHT_DB_USER" envDefault:"gamenight"`
+	DBPass string `env:"GAMENIGHT_DB_PASS" envDefault:"gamenightpass"`
 }
 
 var (
@@ -58,6 +60,8 @@ func main() {
 		Port:     env.DBPort,
 		Context:  context.TODO(),
 		Database: env.DBName,
+		Username: env.DBUser,
+		Password: env.DBPass,
 	}, logs.Plain.Named("mongo"))
 	if err != nil {
 		logs.Plain.Error(

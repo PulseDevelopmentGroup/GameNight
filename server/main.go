@@ -10,6 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	goenv "github.com/caarlos0/env/v6"
 	"github.com/gofiber/fiber"
+	"github.com/gofiber/cors"
 
 	"go.uber.org/zap"
 
@@ -76,6 +77,8 @@ func main() {
 	app := fiber.New(&fiber.Settings{
 		DisableStartupMessage: true,
 	})
+
+	app.Use(cors.New())
 
 	app.Use("/query", func(ctx *fiber.Ctx) {
 		handler.NewDefaultServer(gql.NewExecutableSchema(cfg)).Handler()(ctx.Fasthttp)

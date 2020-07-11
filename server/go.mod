@@ -8,8 +8,8 @@ require (
 	github.com/caarlos0/env/v6 v6.3.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fasthttp/websocket v1.4.3 // indirect
-	github.com/gofiber/cors v0.2.1 // indirect
-	github.com/gofiber/fiber v1.12.1 // indirect
+	github.com/gofiber/cors v0.2.1
+	github.com/gofiber/fiber v1.12.1
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/graphql-go/graphql v0.7.9 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect

@@ -11,6 +11,7 @@ import { Spyfall } from "./games/Spyfall";
 import { Sidebar } from "./components/Sidebar";
 import { RoomLobby } from "./room/RoomLobby";
 import { gql, useQuery } from "@apollo/client";
+import { useGetRoomCodeQuery } from "./generated/graphql";
 
 const GET_CURRENT_ROOM = gql`
   query GetRoomCode {
@@ -20,7 +21,7 @@ const GET_CURRENT_ROOM = gql`
 
 function App() {
   const history = useHistory();
-  const { data } = useQuery(GET_CURRENT_ROOM);
+  const { data } = useGetRoomCodeQuery();
 
   const currentRoom = data?.currentRoom;
 
@@ -28,7 +29,7 @@ function App() {
     if (currentRoom) {
       history.push(`/r/${currentRoom}`);
     }
-  }, [currentRoom]);
+  }, [currentRoom, history]);
 
   return (
     <div className="flex flex-col h-screen top-0 right-0 bottom-0 left-0 bg-gray-800">

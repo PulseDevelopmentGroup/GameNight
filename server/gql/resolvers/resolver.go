@@ -2,12 +2,12 @@ package resolvers
 
 import (
 	"context"
-
-	"github.com/PulseDevelopmentGroup/GameNight/models"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"fmt"
 
 	"github.com/PulseDevelopmentGroup/GameNight/db"
 	"github.com/PulseDevelopmentGroup/GameNight/hub"
+	"github.com/PulseDevelopmentGroup/GameNight/models"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
 
@@ -21,59 +21,14 @@ type Resolver struct {
 	Log *zap.Logger
 }
 
-/* === ObjectID to model resolvers === */
-
-// The following resolvers call the database ("db" package) API directly to
-// resolve ObjectIDs.
-
-func (r *spyfallPlayerResolver) User(ctx context.Context, obj *models.SpyfallPlayer) (*models.User, error) {
-	return r.DB.GetUser(obj.User)
-}
-
 func (r *gameVoteResolver) User(ctx context.Context, obj *models.GameVote) (*models.User, error) {
 	return r.DB.GetUser(obj.User)
 }
 
-func (r *queryResolver) User(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
-	return r.DB.GetUser(id)
+func (r *gameVoteResolver) Game(ctx context.Context, obj *models.GameVote) (*models.GameMeta, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *roomResolver) Users(ctx context.Context, obj *models.Room) ([]*models.User, error) {
-	var users []*models.User
-
-	for _, id := range obj.Users {
-		user, err := r.DB.GetUser(id)
-		if err != nil {
-			return users, err
-		}
-
-		users = append(users, user)
-	}
-
-	return users, nil
-}
-
-func (r *roomResolver) Leader(ctx context.Context, obj *models.Room) (*models.User, error) {
-	return r.DB.GetUser(obj.Leader)
-}
-
-func (r *roomResolver) CurrentGame(ctx context.Context, obj *models.Room) (models.Game, error) {
-	game, err := r.DB.GetGameDict(*obj.CurrentGame)
-	if err != nil {
-		return game, err
-	}
-
-	err = r.DB.GetGame(*obj.CurrentGame, game)
-	if err != nil {
-		return game, err
-	}
-
-	return game, nil
-}
-
-/* === End ObjectID to model resolvers === */
-
-/* === Start Primary Resolvers === */
 func (r *mutationResolver) CreateRoom(ctx context.Context, createInput *models.CreateRoomInput) (*models.CreateRoomMutationResponse, error) {
 	room, user, err := r.Hub.CreateRoom(createInput.Username)
 	if err != nil {
@@ -116,8 +71,71 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, joinInput *models.JoinR
 	}, nil
 }
 
+func (r *mutationResolver) VoteForGame(ctx context.Context, voteInput *models.VoteForGameInput) (*models.VoteForGameMutationResponse, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) User(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
+	return r.DB.GetUser(id)
+}
+
+func (r *queryResolver) Room(ctx context.Context, id primitive.ObjectID) (*models.Room, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) RoomByCode(ctx context.Context, code string) (*models.Room, error) {
 	return r.DB.GetRoom(code)
 }
 
-/* === End Primary Resolvers === */
+func (r *queryResolver) Games(ctx context.Context) ([]*models.GameMeta, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *roomResolver) Leader(ctx context.Context, obj *models.Room) (*models.User, error) {
+	return r.DB.GetUser(obj.Leader)
+}
+
+func (r *roomResolver) Users(ctx context.Context, obj *models.Room) ([]*models.User, error) {
+	var users []*models.User
+
+	for _, id := range obj.Users {
+		user, err := r.DB.GetUser(id)
+		if err != nil {
+			return users, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func (r *roomResolver) CurrentGame(ctx context.Context, obj *models.Room) (models.Game, error) {
+	game, err := r.DB.GetGameDict(*obj.CurrentGame)
+	if err != nil {
+		return game, err
+	}
+
+	err = r.DB.GetGame(*obj.CurrentGame, game)
+	if err != nil {
+		return game, err
+	}
+
+	return game, nil
+}
+
+func (r *roomResolver) GameHistory(ctx context.Context, obj *models.Room) ([]models.Game, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *spyfallGameResolver) Players(ctx context.Context, obj *models.SpyfallGame) ([]*models.SpyfallPlayer, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *spyfallPlayerResolver) User(ctx context.Context, obj *models.SpyfallPlayer) (*models.User, error) {
+	return r.DB.GetUser(obj.User)
+}
+
+func (r *userResolver) Player(ctx context.Context, obj *models.User) (models.Player, error) {
+	panic(fmt.Errorf("not implemented"))
+}

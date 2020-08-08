@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// GenerateRoomCode returns a randomly generated string of the length specified.
 func GenerateRoomCode(length int) string {
 	letters := []rune("abcdefghijklmnopqrstuvwxyz")
 

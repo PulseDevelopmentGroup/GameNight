@@ -4,37 +4,8 @@ package resolvers
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/PulseDevelopmentGroup/GameNight/gql"
-	"github.com/PulseDevelopmentGroup/GameNight/models"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-func (r *gameVoteResolver) Game(ctx context.Context, obj *models.GameVote) (*models.GameMeta, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *mutationResolver) VoteForGame(ctx context.Context, voteInput *models.VoteForGameInput) (*models.VoteForGameMutationResponse, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *queryResolver) Room(ctx context.Context, id primitive.ObjectID) (*models.Room, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *queryResolver) Games(ctx context.Context) ([]*models.GameMeta, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *roomResolver) GameHistory(ctx context.Context, obj *models.Room) ([]models.Game, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *userResolver) Player(ctx context.Context, obj *models.User) (models.Player, error) {
-	panic(fmt.Errorf("not implemented"))
-}
 
 // GameVote returns gql.GameVoteResolver implementation.
 func (r *Resolver) GameVote() gql.GameVoteResolver { return &gameVoteResolver{r} }
@@ -48,6 +19,9 @@ func (r *Resolver) Query() gql.QueryResolver { return &queryResolver{r} }
 // Room returns gql.RoomResolver implementation.
 func (r *Resolver) Room() gql.RoomResolver { return &roomResolver{r} }
 
+// SpyfallGame returns gql.SpyfallGameResolver implementation.
+func (r *Resolver) SpyfallGame() gql.SpyfallGameResolver { return &spyfallGameResolver{r} }
+
 // SpyfallPlayer returns gql.SpyfallPlayerResolver implementation.
 func (r *Resolver) SpyfallPlayer() gql.SpyfallPlayerResolver { return &spyfallPlayerResolver{r} }
 
@@ -58,5 +32,6 @@ type gameVoteResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type roomResolver struct{ *Resolver }
+type spyfallGameResolver struct{ *Resolver }
 type spyfallPlayerResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

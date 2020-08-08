@@ -58,12 +58,12 @@ func (r *roomResolver) Leader(ctx context.Context, obj *models.Room) (*models.Us
 }
 
 func (r *roomResolver) CurrentGame(ctx context.Context, obj *models.Room) (models.Game, error) {
-	game, err := r.DB.GetGameType(obj.CurrentGame)
+	game, err := r.DB.GetGameDict(*obj.CurrentGame)
 	if err != nil {
 		return game, err
 	}
 
-	err = r.DB.GetGame(obj.CurrentGame, game)
+	err = r.DB.GetGame(*obj.CurrentGame, game)
 	if err != nil {
 		return game, err
 	}
@@ -114,6 +114,10 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, joinInput *models.JoinR
 		Room:    room,
 		User:    user,
 	}, nil
+}
+
+func (r *queryResolver) RoomByCode(ctx context.Context, code string) (*models.Room, error) {
+	return r.DB.GetRoom(code)
 }
 
 /* === End Primary Resolvers === */

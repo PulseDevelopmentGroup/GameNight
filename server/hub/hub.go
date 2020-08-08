@@ -20,18 +20,28 @@ type Hub struct {
 	TokenSecret string
 }
 
+var games = []models.GameMeta{
+	models.GameMeta{
+		ID:   primitive.NewObjectID(),
+		Name: "Spyfall",
+	},
+}
+
 // Most of the functions in the "hub" package could easily be moved to the DB
 // package. They're here moreso for future-proofing where moving everything into
 // the DB package wouldn't be reasonable.
 
 // New creates a new hub object for performing actions which consist of core app
-// functionality.
-func New(database *db.Client, sec string, log *zap.Logger) *Hub {
-	return &Hub{
-		DB:          database,
-		Log:         log,
+// functionality. Calling New also triggers some basic database initialization.
+func New(database *db.Client, sec string, log *zap.Logger) (*Hub, error) {
+	h := &Hub{
+		DB:  database,
+		Log: log,
+
 		TokenSecret: sec,
 	}
+
+	return h, h.initMeta()
 }
 
 // CreateRoom creates a new room and it's first user using the supplied username
@@ -88,6 +98,19 @@ func (h *Hub) JoinRoom(code, username string) (*models.Room, *models.User, error
 === Private Helper Functions ===
 
 */
+
+func (h *Hub) initMeta() error {
+	/* Dump game meta into DB */
+	h.Log.Info("Adding Game Metadata to DB")
+	for _, g := range games {
+		if err := h.DB.SetGameMeta(&g); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (h *Hub) newRoom(leader *models.User) (*models.Room, error) {
 	room := &models.Room{
 		ID:          primitive.NewObjectID(),
@@ -106,6 +129,10 @@ func (h *Hub) newRoom(leader *models.User) (*models.Room, error) {
 }
 
 func (h *Hub) newUser(username string) (*models.User, error) {
+	if len(username) == 0 {
+		return &models.User{}, fmt.Errorf("you must supply a username")
+	}
+
 	id := primitive.NewObjectID()
 
 	token, err := h.newToken(id.Hex())

@@ -13,11 +13,13 @@ import (
 	"fmt"
 )
 
+// Hub defines the main control code of the server. Hub is responsible for
+// handling logging and interaction with the database.
 type Hub struct {
-	DB  *db.Client
-	Log *zap.Logger
+	db  *db.Client
+	log *zap.Logger
 
-	TokenSecret string
+	tokenSecret string
 }
 
 var games = []models.GameMeta{
@@ -25,24 +27,28 @@ var games = []models.GameMeta{
 		ID:   primitive.NewObjectID(),
 		Name: "Spyfall",
 	},
+	models.GameMeta{
+		ID:   primitive.NewObjectID(),
+		Name: "Codenames",
+	},
 }
 
-// Most of the functions in the "hub" package could easily be moved to the DB
-// package. They're here moreso for future-proofing where moving everything into
-// the DB package wouldn't be reasonable.
-
-// New creates a new hub object for performing actions which consist of core app
-// functionality. Calling New also triggers some basic database initialization.
+// New creates a new hub object and initializes the meta database
 func New(database *db.Client, sec string, log *zap.Logger) (*Hub, error) {
 	h := &Hub{
-		DB:  database,
-		Log: log,
+		db:  database,
+		log: log,
 
-		TokenSecret: sec,
+		tokenSecret: sec,
 	}
-
 	return h, h.initMeta()
 }
+
+/*
+
+=== Primary Resolver Functions ===
+
+*/
 
 // CreateRoom creates a new room and it's first user using the supplied username
 func (h *Hub) CreateRoom(username string) (*models.Room, *models.User, error) {
@@ -64,7 +70,7 @@ func (h *Hub) CreateRoom(username string) (*models.Room, *models.User, error) {
 
 }
 
-// Join room creates a new user and joins an existing room using the supplied
+// JoinRoom creates a new user and joins an existing room using the supplied
 // room code and username.
 func (h *Hub) JoinRoom(code, username string) (*models.Room, *models.User, error) {
 	user, err := h.newUser(username)
@@ -74,7 +80,7 @@ func (h *Hub) JoinRoom(code, username string) (*models.Room, *models.User, error
 		)
 	}
 
-	room, err := h.DB.GetRoom(code)
+	room, err := h.db.GetRoom(code)
 	if err != nil {
 		return &models.Room{}, user, fmt.Errorf(
 			"unable to get room to join: '%s'", err,
@@ -83,7 +89,7 @@ func (h *Hub) JoinRoom(code, username string) (*models.Room, *models.User, error
 
 	room.Users = append(room.Users, user.ID)
 
-	err = h.DB.SetRoom(room, false)
+	err = h.db.SetRoom(room, false)
 	if err != nil {
 		return room, user, fmt.Errorf(
 			"unable to update room: '%s'", err,
@@ -95,15 +101,21 @@ func (h *Hub) JoinRoom(code, username string) (*models.Room, *models.User, error
 
 /*
 
+=== Resolver Functions ===
+
+*/
+
+/*
+
 === Private Helper Functions ===
 
 */
 
 func (h *Hub) initMeta() error {
 	/* Dump game meta into DB */
-	h.Log.Info("Adding Game Metadata to DB")
+	h.log.Info("Adding Game Metadata to DB")
 	for _, g := range games {
-		if err := h.DB.SetGameMeta(&g); err != nil {
+		if err := h.db.SetGameMeta(&g); err != nil {
 			return err
 		}
 	}
@@ -114,13 +126,13 @@ func (h *Hub) initMeta() error {
 func (h *Hub) newRoom(leader *models.User) (*models.Room, error) {
 	room := &models.Room{
 		ID:          primitive.NewObjectID(),
-		Code:        h.DB.NewRoomCode(6),
+		Code:        h.db.NewRoomCode(6),
 		DateCreated: time.Now(),
 		Leader:      leader.ID,
 		Users:       []primitive.ObjectID{leader.ID},
 	}
 
-	err := h.DB.SetRoom(room, true)
+	err := h.db.SetRoom(room, true)
 	if err != nil {
 		return room, err
 	}
@@ -147,7 +159,7 @@ func (h *Hub) newUser(username string) (*models.User, error) {
 		JWT:      &token,
 	}
 
-	err = h.DB.SetUser(user, true)
+	err = h.db.SetUser(user, true)
 	if err != nil {
 		return user, err
 	}
@@ -162,7 +174,7 @@ func (h *Hub) newToken(userid string) (string, error) {
 	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
 
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	token, err := at.SignedString([]byte(h.TokenSecret))
+	token, err := at.SignedString([]byte(h.tokenSecret))
 	if err != nil {
 		return "", err
 	}

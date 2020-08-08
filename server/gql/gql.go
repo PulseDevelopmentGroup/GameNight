@@ -43,6 +43,7 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Room() RoomResolver
+	SpyfallGame() SpyfallGameResolver
 	SpyfallPlayer() SpyfallPlayerResolver
 	User() UserResolver
 }
@@ -157,6 +158,9 @@ type RoomResolver interface {
 	CurrentGame(ctx context.Context, obj *models.Room) (models.Game, error)
 
 	GameHistory(ctx context.Context, obj *models.Room) ([]models.Game, error)
+}
+type SpyfallGameResolver interface {
+	Players(ctx context.Context, obj *models.SpyfallGame) ([]*models.SpyfallPlayer, error)
 }
 type SpyfallPlayerResolver interface {
 	User(ctx context.Context, obj *models.SpyfallPlayer) (*models.User, error)
@@ -2167,13 +2171,13 @@ func (ec *executionContext) _SpyfallGame_players(ctx context.Context, field grap
 		Object:   "SpyfallGame",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Players, nil
+		return ec.resolvers.SpyfallGame().Players(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4248,28 +4252,37 @@ func (ec *executionContext) _SpyfallGame(ctx context.Context, sel ast.SelectionS
 		case "id":
 			out.Values[i] = ec._SpyfallGame_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "isComplete":
 			out.Values[i] = ec._SpyfallGame_isComplete(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "winners":
 			out.Values[i] = ec._SpyfallGame_winners(ctx, field, obj)
 		case "dateStarted":
 			out.Values[i] = ec._SpyfallGame_dateStarted(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "dateEnded":
 			out.Values[i] = ec._SpyfallGame_dateEnded(ctx, field, obj)
 		case "players":
-			out.Values[i] = ec._SpyfallGame_players(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SpyfallGame_players(ctx, field, obj)
+				return res
+			})
 		case "location":
 			out.Values[i] = ec._SpyfallGame_location(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

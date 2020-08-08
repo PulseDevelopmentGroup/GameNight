@@ -5,7 +5,6 @@ import {
   HttpLink,
   ApolloProvider,
   NormalizedCacheObject,
-  gql,
 } from "@apollo/client";
 
 import "./tailwind.css";

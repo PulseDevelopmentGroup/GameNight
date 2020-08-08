@@ -17,6 +17,7 @@
     "emotion": "^10.0.27",
     "graphql": "^15.3.0",
     "graphql.macro": "^1.4.2",
+    "heroicons-react": "^1.1.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-hook-form": "^5.7.2",

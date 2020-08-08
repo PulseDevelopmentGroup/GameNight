@@ -17,6 +17,10 @@ export const RoomLobby = () => {
     }
   }, [roomCode, history]);
 
+  if (!roomCode) {
+    return null;
+  }
+
   return (
     <div
       className={cx(
@@ -26,7 +30,7 @@ export const RoomLobby = () => {
         })
       )}
     >
-      {roomCode && <RoomTag roomCode={roomCode} />}
+      <RoomTag roomCode={roomCode} />
       <Sidebar />
       Welcome to the lobby :D
     </div>

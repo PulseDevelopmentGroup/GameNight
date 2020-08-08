@@ -226,6 +226,25 @@ export type JoinRoomMutation = (
   )> }
 );
 
+export type GetRoomDetailsQueryVariables = Exact<{
+  code: Scalars['String'];
+}>;
+
+
+export type GetRoomDetailsQuery = (
+  { __typename?: 'Query' }
+  & { roomByCode?: Maybe<(
+    { __typename?: 'Room' }
+    & { leader: (
+      { __typename?: 'User' }
+      & Pick<User, 'id'>
+    ), users: Array<Maybe<(
+      { __typename?: 'User' }
+      & Pick<User, 'id' | 'nickname' | 'image'>
+    )>> }
+  )> }
+);
+
 
 export const GetRoomCodeDocument = gql`
     query GetRoomCode {
@@ -396,3 +415,62 @@ export function useJoinRoomMutation(baseOptions?: ApolloReactHooks.MutationHookO
 export type JoinRoomMutationHookResult = ReturnType<typeof useJoinRoomMutation>;
 export type JoinRoomMutationResult = ApolloReactCommon.MutationResult<JoinRoomMutation>;
 export type JoinRoomMutationOptions = ApolloReactCommon.BaseMutationOptions<JoinRoomMutation, JoinRoomMutationVariables>;
+export const GetRoomDetailsDocument = gql`
+    query GetRoomDetails($code: String!) {
+  roomByCode(code: $code) {
+    leader {
+      id
+    }
+    users {
+      id
+      nickname
+      image
+    }
+  }
+}
+    `;
+export type GetRoomDetailsComponentProps = Omit<ApolloReactComponents.QueryComponentOptions<GetRoomDetailsQuery, GetRoomDetailsQueryVariables>, 'query'> & ({ variables: GetRoomDetailsQueryVariables; skip?: boolean; } | { skip: boolean; });
+
+    export const GetRoomDetailsComponent = (props: GetRoomDetailsComponentProps) => (
+      <ApolloReactComponents.Query<GetRoomDetailsQuery, GetRoomDetailsQueryVariables> query={GetRoomDetailsDocument} {...props} />
+    );
+    
+export type GetRoomDetailsProps<TChildProps = {}, TDataName extends string = 'data'> = {
+      [key in TDataName]: ApolloReactHoc.DataValue<GetRoomDetailsQuery, GetRoomDetailsQueryVariables>
+    } & TChildProps;
+export function withGetRoomDetails<TProps, TChildProps = {}, TDataName extends string = 'data'>(operationOptions?: ApolloReactHoc.OperationOption<
+  TProps,
+  GetRoomDetailsQuery,
+  GetRoomDetailsQueryVariables,
+  GetRoomDetailsProps<TChildProps, TDataName>>) {
+    return ApolloReactHoc.withQuery<TProps, GetRoomDetailsQuery, GetRoomDetailsQueryVariables, GetRoomDetailsProps<TChildProps, TDataName>>(GetRoomDetailsDocument, {
+      alias: 'getRoomDetails',
+      ...operationOptions
+    });
+};
+
+/**
+ * __useGetRoomDetailsQuery__
+ *
+ * To run a query within a React component, call `useGetRoomDetailsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetRoomDetailsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetRoomDetailsQuery({
+ *   variables: {
+ *      code: // value for 'code'
+ *   },
+ * });
+ */
+export function useGetRoomDetailsQuery(baseOptions?: ApolloReactHooks.QueryHookOptions<GetRoomDetailsQuery, GetRoomDetailsQueryVariables>) {
+        return ApolloReactHooks.useQuery<GetRoomDetailsQuery, GetRoomDetailsQueryVariables>(GetRoomDetailsDocument, baseOptions);
+      }
+export function useGetRoomDetailsLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<GetRoomDetailsQuery, GetRoomDetailsQueryVariables>) {
+          return ApolloReactHooks.useLazyQuery<GetRoomDetailsQuery, GetRoomDetailsQueryVariables>(GetRoomDetailsDocument, baseOptions);
+        }
+export type GetRoomDetailsQueryHookResult = ReturnType<typeof useGetRoomDetailsQuery>;
+export type GetRoomDetailsLazyQueryHookResult = ReturnType<typeof useGetRoomDetailsLazyQuery>;
+export type GetRoomDetailsQueryResult = ApolloReactCommon.QueryResult<GetRoomDetailsQuery, GetRoomDetailsQueryVariables>;

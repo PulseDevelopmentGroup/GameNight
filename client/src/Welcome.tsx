@@ -75,8 +75,6 @@ export const Welcome = () => {
   } = useForm<CreateRoomInput>();
 
   const onJoin = (values: JoinRoomInput) => {
-    console.log("ima join");
-    console.log(values);
     joinRoom({
       variables: {
         input: {
@@ -88,8 +86,6 @@ export const Welcome = () => {
   };
 
   const onCreate = (values: CreateRoomInput) => {
-    console.log("create :D");
-    console.log(values);
     createRoom({
       variables: {
         input: {

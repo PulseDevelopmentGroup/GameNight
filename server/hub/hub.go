@@ -142,7 +142,7 @@ func (h *Hub) newRoom(leader *models.User) (*models.Room, error) {
 
 func (h *Hub) newUser(username string) (*models.User, error) {
 	if len(username) == 0 {
-		return &models.User{}, fmt.Errorf("you must supply a username")
+		return &models.User{}, fmt.Errorf("no username supplied")
 	}
 
 	id := primitive.NewObjectID()

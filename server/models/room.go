@@ -18,7 +18,7 @@ type Room struct {
 }
 
 type CreateRoomInput struct {
-	Username string `json:"username"`
+	Nickname string `json:"username"`
 }
 
 type CreateRoomMutationResponse struct {
@@ -32,7 +32,7 @@ type CreateRoomMutationResponse struct {
 func (CreateRoomMutationResponse) IsMutationResponse() {}
 
 type JoinRoomInput struct {
-	Username string `json:"username"`
+	Nickname string `json:"username"`
 	RoomCode string `json:"roomCode"`
 }
 

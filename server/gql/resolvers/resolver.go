@@ -30,7 +30,7 @@ func (r *gameVoteResolver) Game(ctx context.Context, obj *models.GameVote) (*mod
 }
 
 func (r *mutationResolver) CreateRoom(ctx context.Context, createInput *models.CreateRoomInput) (*models.CreateRoomMutationResponse, error) {
-	room, user, err := r.Hub.CreateRoom(createInput.Username)
+	room, user, err := r.Hub.CreateRoom(createInput.Nickname)
 	if err != nil {
 		return &models.CreateRoomMutationResponse{
 			Code:    "500",
@@ -51,7 +51,7 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, createInput *models.C
 }
 
 func (r *mutationResolver) JoinRoom(ctx context.Context, joinInput *models.JoinRoomInput) (*models.JoinRoomMutationResponse, error) {
-	room, user, err := r.Hub.JoinRoom(joinInput.RoomCode, joinInput.Username)
+	room, user, err := r.Hub.JoinRoom(joinInput.RoomCode, joinInput.Nickname)
 	if err != nil {
 		return &models.JoinRoomMutationResponse{
 			Code:    "500",

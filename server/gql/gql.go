@@ -688,7 +688,7 @@ type Room {
 }
 
 input CreateRoomInput {
-  username: String!
+  nickname: String!
 }
 
 type CreateRoomMutationResponse implements MutationResponse {
@@ -700,7 +700,7 @@ type CreateRoomMutationResponse implements MutationResponse {
 }
 
 input JoinRoomInput {
-  username: String!
+  nickname: String!
   roomCode: String!
 }
 
@@ -3747,9 +3747,9 @@ func (ec *executionContext) unmarshalInputCreateRoomInput(ctx context.Context, o
 
 	for k, v := range asMap {
 		switch k {
-		case "username":
+		case "nickname":
 			var err error
-			it.Username, err = ec.unmarshalNString2string(ctx, v)
+			it.Nickname, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3765,9 +3765,9 @@ func (ec *executionContext) unmarshalInputJoinRoomInput(ctx context.Context, obj
 
 	for k, v := range asMap {
 		switch k {
-		case "username":
+		case "nickname":
 			var err error
-			it.Username, err = ec.unmarshalNString2string(ctx, v)
+			it.Nickname, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}

@@ -1,11 +1,69 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { TextField } from "./components/inputs/TextField";
 import { Button } from "./components/Button";
 import { cx, css } from "emotion";
-import { JoinRoomInput, CreateRoomInput } from "./generated/graphql";
+import {
+  JoinRoomInput,
+  CreateRoomInput,
+  useCreateRoomMutation,
+  useJoinRoomMutation,
+} from "./generated/graphql";
+import { gql } from "@apollo/client";
+import { currentRoomVal } from "./cache";
+
+const CREATE_ROOM = gql`
+  mutation CreateRoom($input: CreateRoomInput!) {
+    createRoom(createInput: $input) {
+      code
+      success
+      message
+      room {
+        id
+        code
+      }
+      user {
+        id
+      }
+    }
+  }
+`;
+
+const JOIN_ROOM = gql`
+  mutation JoinRoom($input: JoinRoomInput!) {
+    joinRoom(joinInput: $input) {
+      code
+      success
+      message
+      room {
+        id
+        code
+      }
+      user {
+        id
+      }
+    }
+  }
+`;
 
 export const Welcome = () => {
+  const [createRoom, { data: createData }] = useCreateRoomMutation();
+  const [joinRoom, { data: joinData }] = useJoinRoomMutation();
+
+  useEffect(() => {
+    if (createData?.createRoom?.success) {
+      const roomCode = createData.createRoom?.room?.code;
+      currentRoomVal(roomCode);
+    }
+  }, [createData]);
+
+  useEffect(() => {
+    if (joinData?.joinRoom?.success) {
+      const roomCode = joinData.joinRoom?.room?.code;
+      currentRoomVal(roomCode);
+    }
+  }, [joinData]);
+
   const {
     register: registerJoin,
     handleSubmit: handleJoinSubmit /*, errors*/,
@@ -17,13 +75,24 @@ export const Welcome = () => {
   } = useForm<CreateRoomInput>();
 
   const onJoin = (values: JoinRoomInput) => {
-    console.log("ima join");
-    console.log(values);
+    joinRoom({
+      variables: {
+        input: {
+          roomCode: values.roomCode,
+          username: values.username,
+        },
+      },
+    });
   };
 
   const onCreate = (values: CreateRoomInput) => {
-    console.log("create :D");
-    console.log(values);
+    createRoom({
+      variables: {
+        input: {
+          username: values.username,
+        },
+      },
+    });
   };
 
   return (

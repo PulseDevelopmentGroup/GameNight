@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes, ButtonHTMLAttributes } from "react";
+import React, { ButtonHTMLAttributes } from "react";
 import { cx } from "emotion";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {}

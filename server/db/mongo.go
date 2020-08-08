@@ -200,9 +200,12 @@ func (c *Client) GetUser(v interface{}) (*models.User, error) {
 // If insert is true and a user with a matching ID does not already exist, a new
 // user will be created.
 func (c *Client) SetUser(user *models.User, insert bool) error {
-	if insert && c.Exists(c.Users, "username", user.Username) {
-		return fmt.Errorf("user with username %s already exists", user.Username)
-	}
+	/*
+		// TODO: Disable username existance checking for now
+		if insert && c.Exists(c.Users, "username", user.Username) {
+			return fmt.Errorf("user with username %s already exists", user.Username)
+		}
+	*/
 
 	return c.Set(c.Users, user.ID, insert, user)
 }

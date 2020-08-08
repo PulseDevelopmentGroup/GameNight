@@ -6,9 +6,9 @@ import { cx, css } from "emotion";
 import {
   JoinRoomInput,
   CreateRoomInput,
-  CreateRoomMutationResponse,
+  useCreateRoomMutation,
 } from "./generated/graphql";
-import { gql, useMutation } from "@apollo/client";
+import { gql } from "@apollo/client";
 import { useHistory } from "react-router-dom";
 import { currentRoomVal } from "./cache";
 
@@ -32,16 +32,12 @@ const CREATE_ROOM = gql`
 export const Welcome = () => {
   const history = useHistory();
 
-  const [createRoom, { data }] = useMutation<
-    { createRoom: CreateRoomMutationResponse },
-    { input: CreateRoomInput }
-  >(CREATE_ROOM);
+  const [createRoom, { data }] = useCreateRoomMutation();
 
   useEffect(() => {
     if (data?.createRoom?.success) {
       const roomCode = data.createRoom?.room?.code;
       currentRoomVal(roomCode);
-      // history.push(`/r/${roomCode}`);
     }
   }, [data, history]);
 

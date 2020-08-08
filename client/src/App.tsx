@@ -1,16 +1,11 @@
 import React, { useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Route,
-  useHistory,
-  Switch,
-} from "react-router-dom";
+import { Route, useHistory, Switch } from "react-router-dom";
 import { Welcome } from "./Welcome";
 import { Codenames } from "./games/Codenames";
 import { Spyfall } from "./games/Spyfall";
 import { Sidebar } from "./components/Sidebar";
 import { RoomLobby } from "./room/RoomLobby";
-import { gql, useQuery } from "@apollo/client";
+import { gql } from "@apollo/client";
 import { useGetRoomCodeQuery } from "./generated/graphql";
 
 const GET_CURRENT_ROOM = gql`

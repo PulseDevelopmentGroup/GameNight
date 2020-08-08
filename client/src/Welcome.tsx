@@ -79,7 +79,7 @@ export const Welcome = () => {
       variables: {
         input: {
           roomCode: values.roomCode,
-          username: values.username,
+          nickname: values.nickname,
         },
       },
     });
@@ -89,7 +89,7 @@ export const Welcome = () => {
     createRoom({
       variables: {
         input: {
-          username: values.username,
+          nickname: values.nickname,
         },
       },
     });
@@ -114,8 +114,8 @@ export const Welcome = () => {
             register={registerJoin}
           />
           <TextField
-            label="Username"
-            name="username"
+            label="Nickname"
+            name="nickname"
             fullWidth
             register={registerJoin}
           />
@@ -126,8 +126,8 @@ export const Welcome = () => {
         <form onSubmit={handleCreateSubmit(onCreate)}>
           <h1 className="text-gray-500 text-3xl">Create a Room</h1>
           <TextField
-            label="Username"
-            name="username"
+            label="Nickname"
+            name="nickname"
             fullWidth
             register={registerCreate}
           />

@@ -51,7 +51,7 @@ type Room {
 }
 
 input CreateRoomInput {
-  username: String!
+  nickname: String!
 }
 
 type CreateRoomMutationResponse implements MutationResponse {
@@ -63,7 +63,7 @@ type CreateRoomMutationResponse implements MutationResponse {
 }
 
 input JoinRoomInput {
-  username: String!
+  nickname: String!
   roomCode: String!
 }
 

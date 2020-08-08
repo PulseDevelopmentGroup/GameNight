@@ -100,7 +100,7 @@ export type Room = {
 };
 
 export type CreateRoomInput = {
-  username: Scalars['String'];
+  nickname: Scalars['String'];
 };
 
 export type CreateRoomMutationResponse = MutationResponse & {
@@ -113,7 +113,7 @@ export type CreateRoomMutationResponse = MutationResponse & {
 };
 
 export type JoinRoomInput = {
-  username: Scalars['String'];
+  nickname: Scalars['String'];
   roomCode: Scalars['String'];
 };
 

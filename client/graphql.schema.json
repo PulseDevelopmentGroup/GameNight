@@ -628,7 +628,7 @@
         "fields": null,
         "inputFields": [
           {
-            "name": "username",
+            "name": "nickname",
             "description": null,
             "type": {
               "kind": "NON_NULL",
@@ -742,7 +742,7 @@
         "fields": null,
         "inputFields": [
           {
-            "name": "username",
+            "name": "nickname",
             "description": null,
             "type": {
               "kind": "NON_NULL",

@@ -5,7 +5,12 @@ import {
   User,
 } from "../generated/graphql";
 import { cx, css } from "emotion";
-import { Menu, DotsVertical, User as UserIcon } from "heroicons-react";
+import {
+  Menu,
+  DotsVertical,
+  User as UserIcon,
+  BadgeCheck,
+} from "heroicons-react";
 import { gql } from "@apollo/client";
 
 const GET_ROOM_DETAILS = gql`
@@ -53,7 +58,11 @@ export const Sidebar = () => {
       />
 
       {roomData?.roomByCode?.users.map((user) => {
-        return user && <UserEntry key={user.id} user={user} />;
+        const isLeader = roomData.roomByCode?.leader?.id === user?.id;
+
+        return (
+          user && <UserEntry key={user.id} user={user} isLeader={isLeader} />
+        );
       })}
     </div>
   );
@@ -61,9 +70,10 @@ export const Sidebar = () => {
 
 interface UserEntryProps {
   user: Pick<User, "id" | "nickname" | "image">;
+  isLeader: boolean;
 }
 
-const UserEntry = ({ user }: UserEntryProps) => {
+const UserEntry = ({ user, isLeader }: UserEntryProps) => {
   return (
     <>
       <div className="flex items-center text-lg text-gray-400">
@@ -75,6 +85,7 @@ const UserEntry = ({ user }: UserEntryProps) => {
           </div>
         )}
         <span className="ml-3">{user.nickname}</span>
+        {isLeader && <BadgeCheck className="text-teal-400 w-5 h-5 ml-2" />}
       </div>
       <DotsVertical
         className={cx(

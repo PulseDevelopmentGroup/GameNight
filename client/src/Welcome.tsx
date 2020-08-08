@@ -96,7 +96,7 @@ export const Welcome = () => {
   };
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex-1 flex items-center justify-center">
       <div
         className={cx(
           "bg-gray-700 rounded-lg p-8 py-4 space-y-2 shadow-lg",

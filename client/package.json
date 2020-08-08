@@ -30,7 +30,8 @@
     "start": "tailwind build src/index.css -o src/tailwind.css && react-scripts start",
     "build": "tailwind build src/index.css -o src/tailwind.css && react-scripts build",
     "eject": "react-scripts eject",
-    "gen": "graphql-codegen --config codegen.yml"
+    "gen": "graphql-codegen --config codegen.yml",
+    "watch:gen": "npm run gen -- -w"
   },
   "eslintConfig": {
     "extends": "react-app"

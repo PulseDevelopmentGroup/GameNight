@@ -206,6 +206,26 @@ export type CreateRoomMutation = (
   )> }
 );
 
+export type JoinRoomMutationVariables = Exact<{
+  input: JoinRoomInput;
+}>;
+
+
+export type JoinRoomMutation = (
+  { __typename?: 'Mutation' }
+  & { joinRoom?: Maybe<(
+    { __typename?: 'JoinRoomMutationResponse' }
+    & Pick<JoinRoomMutationResponse, 'code' | 'success' | 'message'>
+    & { room?: Maybe<(
+      { __typename?: 'Room' }
+      & Pick<Room, 'id' | 'code'>
+    )>, user?: Maybe<(
+      { __typename?: 'User' }
+      & Pick<User, 'id'>
+    )> }
+  )> }
+);
+
 
 export const GetRoomCodeDocument = gql`
     query GetRoomCode {
@@ -316,3 +336,63 @@ export function useCreateRoomMutation(baseOptions?: ApolloReactHooks.MutationHoo
 export type CreateRoomMutationHookResult = ReturnType<typeof useCreateRoomMutation>;
 export type CreateRoomMutationResult = ApolloReactCommon.MutationResult<CreateRoomMutation>;
 export type CreateRoomMutationOptions = ApolloReactCommon.BaseMutationOptions<CreateRoomMutation, CreateRoomMutationVariables>;
+export const JoinRoomDocument = gql`
+    mutation JoinRoom($input: JoinRoomInput!) {
+  joinRoom(joinInput: $input) {
+    code
+    success
+    message
+    room {
+      id
+      code
+    }
+    user {
+      id
+    }
+  }
+}
+    `;
+export type JoinRoomMutationFn = ApolloReactCommon.MutationFunction<JoinRoomMutation, JoinRoomMutationVariables>;
+export type JoinRoomComponentProps = Omit<ApolloReactComponents.MutationComponentOptions<JoinRoomMutation, JoinRoomMutationVariables>, 'mutation'>;
+
+    export const JoinRoomComponent = (props: JoinRoomComponentProps) => (
+      <ApolloReactComponents.Mutation<JoinRoomMutation, JoinRoomMutationVariables> mutation={JoinRoomDocument} {...props} />
+    );
+    
+export type JoinRoomProps<TChildProps = {}, TDataName extends string = 'mutate'> = {
+      [key in TDataName]: ApolloReactCommon.MutationFunction<JoinRoomMutation, JoinRoomMutationVariables>
+    } & TChildProps;
+export function withJoinRoom<TProps, TChildProps = {}, TDataName extends string = 'mutate'>(operationOptions?: ApolloReactHoc.OperationOption<
+  TProps,
+  JoinRoomMutation,
+  JoinRoomMutationVariables,
+  JoinRoomProps<TChildProps, TDataName>>) {
+    return ApolloReactHoc.withMutation<TProps, JoinRoomMutation, JoinRoomMutationVariables, JoinRoomProps<TChildProps, TDataName>>(JoinRoomDocument, {
+      alias: 'joinRoom',
+      ...operationOptions
+    });
+};
+
+/**
+ * __useJoinRoomMutation__
+ *
+ * To run a mutation, you first call `useJoinRoomMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useJoinRoomMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [joinRoomMutation, { data, loading, error }] = useJoinRoomMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useJoinRoomMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<JoinRoomMutation, JoinRoomMutationVariables>) {
+        return ApolloReactHooks.useMutation<JoinRoomMutation, JoinRoomMutationVariables>(JoinRoomDocument, baseOptions);
+      }
+export type JoinRoomMutationHookResult = ReturnType<typeof useJoinRoomMutation>;
+export type JoinRoomMutationResult = ApolloReactCommon.MutationResult<JoinRoomMutation>;
+export type JoinRoomMutationOptions = ApolloReactCommon.BaseMutationOptions<JoinRoomMutation, JoinRoomMutationVariables>;

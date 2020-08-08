@@ -7,9 +7,9 @@ import {
   JoinRoomInput,
   CreateRoomInput,
   useCreateRoomMutation,
+  useJoinRoomMutation,
 } from "./generated/graphql";
 import { gql } from "@apollo/client";
-import { useHistory } from "react-router-dom";
 import { currentRoomVal } from "./cache";
 
 const CREATE_ROOM = gql`
@@ -29,17 +29,40 @@ const CREATE_ROOM = gql`
   }
 `;
 
-export const Welcome = () => {
-  const history = useHistory();
+const JOIN_ROOM = gql`
+  mutation JoinRoom($input: JoinRoomInput!) {
+    joinRoom(joinInput: $input) {
+      code
+      success
+      message
+      room {
+        id
+        code
+      }
+      user {
+        id
+      }
+    }
+  }
+`;
 
-  const [createRoom, { data }] = useCreateRoomMutation();
+export const Welcome = () => {
+  const [createRoom, { data: createData }] = useCreateRoomMutation();
+  const [joinRoom, { data: joinData }] = useJoinRoomMutation();
 
   useEffect(() => {
-    if (data?.createRoom?.success) {
-      const roomCode = data.createRoom?.room?.code;
+    if (createData?.createRoom?.success) {
+      const roomCode = createData.createRoom?.room?.code;
       currentRoomVal(roomCode);
     }
-  }, [data, history]);
+  }, [createData]);
+
+  useEffect(() => {
+    if (joinData?.joinRoom?.success) {
+      const roomCode = joinData.joinRoom?.room?.code;
+      currentRoomVal(roomCode);
+    }
+  }, [joinData]);
 
   const {
     register: registerJoin,
@@ -54,6 +77,14 @@ export const Welcome = () => {
   const onJoin = (values: JoinRoomInput) => {
     console.log("ima join");
     console.log(values);
+    joinRoom({
+      variables: {
+        input: {
+          roomCode: values.roomCode,
+          username: values.username,
+        },
+      },
+    });
   };
 
   const onCreate = (values: CreateRoomInput) => {

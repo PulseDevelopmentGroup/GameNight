@@ -3,6 +3,7 @@ import { useGetRoomCodeQuery } from "../generated/graphql";
 import { useHistory } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { cx, css } from "emotion";
+import { RoomTag } from "./RoomTag";
 
 export const RoomLobby = () => {
   const history = useHistory();
@@ -25,6 +26,7 @@ export const RoomLobby = () => {
         })
       )}
     >
+      {roomCode && <RoomTag roomCode={roomCode} />}
       <Sidebar />
       Welcome to the lobby :D
     </div>

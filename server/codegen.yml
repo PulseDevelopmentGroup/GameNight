@@ -1,5 +1,8 @@
 overwrite: true
 schema: "../common/schemav2.graphql"
+#documents:
+#  - "../common/schemav2.graphql"
+#  - "src/**/*.{ts}"
 generates:
   ./src/graphql/generated/resolver-types.ts:
     config:

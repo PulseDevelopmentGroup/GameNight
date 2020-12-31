@@ -20,7 +20,8 @@ export class Database {
   constructor(config: DatabaseConfig) {
     this.config = config;
     this.client = new MongoClient(
-      `mongodb://${config.user}:${config.pass}@${config.addr}:${config.port}`
+      `mongodb://${config.user}:${config.pass}@${config.addr}:${config.port}`,
+      { useUnifiedTopology: true }
     );
   }
 

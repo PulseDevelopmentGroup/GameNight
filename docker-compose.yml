@@ -24,7 +24,7 @@ services:
       - ./server:/app
     working_dir: /app
     env_file:
-      - ./server/.docker.env
+      - ./server/.dev.env
     ports:
       - 4001:4001
     networks:

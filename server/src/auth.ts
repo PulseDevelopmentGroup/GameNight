@@ -1,58 +1,54 @@
 import jwt from "jsonwebtoken";
 import { Database } from "./db/database";
-import {User} from "./graphql/generated/resolver-types";
+import { User } from "./graphql/generated/resolver-types";
 
 export interface AuthenticationConfig {
-    secret: string;
-    expiration: string | number;
-    db: Database;
+  secret: string;
+  expiration: string | number;
+  db: Database;
 }
 
 export class Authentication {
-    private config: AuthenticationConfig
+  private config: AuthenticationConfig;
 
-    constructor(config: AuthenticationConfig) {
-        this.config = config;
+  constructor(config: AuthenticationConfig) {
+    this.config = config;
+  }
+
+  apollo(request: any): { isAuth: boolean; userId?: string } {
+    const header = request.req.headers.authorization;
+
+    // Header not found
+    if (!header) return { isAuth: false };
+
+    const token: any = header.split(" ");
+
+    // Token not found
+    if (!token) return { isAuth: false };
+
+    let decodeToken: any;
+
+    try {
+      decodeToken = jwt.verify(token[1], this.config.secret);
+    } catch (err) {
+      return { isAuth: false };
     }
 
-    apollo(request: any): {isAuth: boolean, userId?: string} {
-        const header = request.req.headers.authorization;
+    if (!decodeToken) return { isAuth: false };
 
-        // Header not found
-        if (!header) return { isAuth: false };
+    return { isAuth: true, userId: decodeToken.userId };
+  }
 
-        const token: any = header.split(" ");
+  generateToken(user: User) {
+    const token = jwt.sign(user, this.config.secret, {
+      expiresIn: this.config.expiration,
+      subject: user.id.toString(),
+    });
 
-        // Token not found
-        if (!token) return { isAuth: false };
+    jwt.verify(token, this.config.secret, (err, data) => {
+      console.log("Token verification:", err, data);
+    });
 
-        let decodeToken: any;
-
-        try {
-            decodeToken = jwt.verify(token[1], this.config.secret);
-        } catch (err) {
-            return { isAuth: false };
-        }
-
-        if (!decodeToken) return { isAuth: false };
-
-        return { isAuth: true, userId: decodeToken.userId };
-    }
-
-    generateToken(user: User) {
-        const token = jwt.sign(user, this.config.secret, {
-            expiresIn: this.config.expiration,
-            subject: user.id.toString();
-        });
-    
-        jwt.verify(token, this.config.secret, (err, data) => {
-            console.log("Token verification:", err, data);
-        });
-    
-        return token;
-    }
-
-    private verify(token: string, secret: string): boolean {
-
-    }
+    return token;
+  }
 }

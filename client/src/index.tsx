@@ -13,7 +13,7 @@ import App from "./App";
 import { cache } from "./cache";
 import { BrowserRouter as Router } from "react-router-dom";
 import { loader } from "graphql.macro";
-const clientSchema = loader("./schema.graphql");
+const clientSchema = loader("./client.graphql");
 
 const client: ApolloClient<NormalizedCacheObject> = new ApolloClient({
   cache,

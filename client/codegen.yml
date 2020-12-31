@@ -1,18 +1,21 @@
 overwrite: true
 schema:
-  - "../common/*.graphql"
-  - "./src/schema.graphql"
+  - "../common/schemav2.graphql"
+  - "./src/client.graphql"
 documents:
-  - "../common/*.graphql"
+  - "../common/schemav2.graphql"
   - "src/**/*.{ts,tsx}"
 generates:
   src/generated/graphql.tsx:
+    config:
+      withHooks: true
+      scalars:
+        Date: Date
+        URL: URL
     plugins:
       - "typescript"
       - "typescript-operations"
       - "typescript-react-apollo"
-    config:
-      withHooks: true
   ./graphql.schema.json:
     plugins:
       - "introspection"

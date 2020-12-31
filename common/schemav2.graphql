@@ -1,0 +1,100 @@
+scalar Date
+scalar URL
+
+type Query {
+  user(id: ID!): User
+  room(id: ID!): Room
+  roomByCode(code: String!): Room
+  games: [GameMeta]!
+}
+
+type Mutation {
+  createRoom: CreateRoomMutationResponse
+  joinRoom(joinInput: JoinRoomInput): JoinRoomMutationResponse
+  voteForGame(voteInput: VoteForGameInput): VoteForGameMutationResponse
+}
+
+interface MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+
+type User @entity(additionalFields: [{ path: "jwt", type: "string" }]) {
+  id: ID! @id
+  username: String! @column
+  image: URL @column
+
+  player: Player @column
+  room: Room @column
+}
+
+interface Player {
+  id: ID! @id
+  user: User! @column
+}
+
+type Room @entity {
+  id: ID! @id
+  code: String! @column
+  leader: User! @column
+  users: [User]! @column
+
+  currentGame: Game @column
+
+  gameVotes: [GameVote]! @column
+  gameHistory: [Game] @column
+
+  dateCreated: Date! @column
+}
+
+type CreateRoomMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  room: Room
+  user: User
+}
+
+input JoinRoomInput {
+  roomCode: String!
+}
+
+type JoinRoomMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  room: Room
+  user: User
+}
+
+input VoteForGameInput {
+  gameId: ID!
+}
+
+type VoteForGameMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  vote: GameVote
+}
+
+interface Game {
+  id: ID! @id
+  active: Boolean! @column
+  winners: [User] @column
+
+  dateStarted: Date! @column
+  dateEnded: Date @column
+}
+
+type GameVote @entity {
+  user: User!
+  game: GameMeta!
+}
+
+type GameMeta @entity {
+  id: ID! @id
+  name: String! @column
+  coverImage: URL @column
+}

@@ -107,7 +107,7 @@ type GameVote {
 }
 
 type SpyfallGame implements Game {
-  id: ID!
+  id: ID! @id
   isComplete: Boolean!
   winners: [User]
 
@@ -119,7 +119,7 @@ type SpyfallGame implements Game {
 }
 
 type SpyfallPlayer implements Player {
-  id: ID!
+  id: ID! @id
   user: User!
 
   isSpy: Boolean!

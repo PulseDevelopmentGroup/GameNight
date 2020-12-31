@@ -1,4 +1,6 @@
 {
   "go.formatTool": "goimports",
-  "go.useLanguageServer": false
+  "go.useLanguageServer": false,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }

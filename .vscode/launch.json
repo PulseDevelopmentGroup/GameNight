@@ -5,13 +5,24 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Start Server",
+      "name": "Start Go Server",
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "${workspaceFolder}/server",
+      "program": "${workspaceFolder}/go-server",
       "env": {},
       "args": []
+    },
+    {
+      //TODO: This doesn't work
+      "type": "node",
+      "request": "launch",
+      "name": "Start TS Server",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/server",
+      "program": "${workspaceFolder}/server/src/server.ts",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/server/dist/**/*.js"]
     }
   ]
 }

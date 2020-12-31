@@ -1,0 +1,19 @@
+overwrite: true
+schema: "schemav2.graphql"
+#documents: "schema.graphql"
+generates:
+  src/graphql/generated/resolver-types.ts:
+    config:
+      useIndexSignature: true
+      scalars:
+        Date: Date
+        URL: URL
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+      - "typescript-resolvers"
+      - "typescript-mongodb"
+      - "typescript-document-nodes"
+  ./graphql.schema.json:
+    plugins:
+      - "introspection"

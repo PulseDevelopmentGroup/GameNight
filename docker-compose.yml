@@ -24,7 +24,7 @@ services:
       - ./server:/app
     working_dir: /app
     env_file:
-      - ./server/.dev.env
+      - ./server/.env
     ports:
       - 4001:4001
     networks:

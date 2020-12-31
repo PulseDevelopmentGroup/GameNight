@@ -1,5 +1,3 @@
-import dotenv from "dotenv";
-
 export interface Environment {
   debug: boolean;
   firstRun: boolean;
@@ -16,8 +14,6 @@ export interface Environment {
 
 export const getEnvironment = () => {
   return new Promise<Environment>((resolve, reject) => {
-    dotenv.config();
-
     let env: Environment = {
       debug: Boolean(process.env.GAMENIGHT_DEBUG) ?? false,
       firstRun: Boolean(process.env.GAMENIGHT_FIRSTRUN) ?? false,

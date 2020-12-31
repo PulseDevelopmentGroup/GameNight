@@ -5,6 +5,26 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Start TS Server",
+      "program": "${workspaceFolder}/server/src/server.ts",
+      "request": "launch",
+      "preLaunchTask": "tsc: build - server/tsconfig.json",
+      "skipFiles": ["<node_internals>/**"],
+      "outFiles": ["${workspaceFolder}/server/dist/**/*.js"],
+      "type": "node",
+      "envFile": "${workspaceFolder}/server/dev.env"
+    },
+    {
+      "name": "Watch TS Server",
+      "program": "${workspaceFolder}/server/src/server.ts",
+      "request": "launch",
+      "preLaunchTask": "tsc: watch - server/tsconfig.json",
+      "skipFiles": ["<node_internals>/**"],
+      "outFiles": ["${workspaceFolder}/server/dist/**/*.js"],
+      "type": "node",
+      "envFile": "${workspaceFolder}/server/dev.env"
+    },
+    {
       "name": "Start Go Server",
       "type": "go",
       "request": "launch",
@@ -12,17 +32,6 @@
       "program": "${workspaceFolder}/go-server",
       "env": {},
       "args": []
-    },
-    {
-      //TODO: This doesn't work
-      "type": "node",
-      "request": "launch",
-      "name": "Start TS Server",
-      "skipFiles": ["<node_internals>/**"],
-      "cwd": "${workspaceFolder}/server",
-      "program": "${workspaceFolder}/server/src/server.ts",
-      "preLaunchTask": "tsc: build - tsconfig.json",
-      "outFiles": ["${workspaceFolder}/server/dist/**/*.js"]
     }
   ]
 }

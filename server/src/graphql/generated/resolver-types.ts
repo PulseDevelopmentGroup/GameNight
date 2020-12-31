@@ -1,13 +1,15 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
+import { UserModel, RoomModel } from '../models';
 import gql from 'graphql-tag';
 export type Maybe<T> = T | null;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = { [X in Exclude<keyof T, K>]?: T[X] } & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
-  ID: string;
+  ID: ObjectID;
   String: string;
   Boolean: boolean;
   Int: number;
@@ -51,9 +53,15 @@ export type QueryRoomByCodeArgs = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  login?: Maybe<LoginMutationResponse>;
   createRoom?: Maybe<CreateRoomMutationResponse>;
   joinRoom?: Maybe<JoinRoomMutationResponse>;
   voteForGame?: Maybe<VoteForGameMutationResponse>;
+};
+
+
+export type MutationLoginArgs = {
+  loginInput?: Maybe<LoginInput>;
 };
 
 
@@ -72,6 +80,18 @@ export type MutationResponse = {
   message: Scalars['String'];
 };
 
+export type LoginInput = {
+  accessToken: Scalars['String'];
+};
+
+export type LoginMutationResponse = MutationResponse & {
+  __typename?: 'LoginMutationResponse';
+  code: Scalars['String'];
+  success: Scalars['Boolean'];
+  message: Scalars['String'];
+  user?: Maybe<User>;
+};
+
 export type User = {
   __typename?: 'User';
   id: Scalars['ID'];
@@ -79,6 +99,7 @@ export type User = {
   image?: Maybe<Scalars['URL']>;
   player?: Maybe<Player>;
   room?: Maybe<Room>;
+  token?: Maybe<Scalars['String']>;
 };
 
 export type Player = {
@@ -120,6 +141,12 @@ export type JoinRoomMutationResponse = MutationResponse & {
   user?: Maybe<User>;
 };
 
+export type GameVote = {
+  __typename?: 'GameVote';
+  user: User;
+  game: GameMeta;
+};
+
 export type VoteForGameInput = {
   gameId: Scalars['ID'];
 };
@@ -138,12 +165,6 @@ export type Game = {
   winners?: Maybe<Array<Maybe<User>>>;
   dateStarted: Scalars['Date'];
   dateEnded?: Maybe<Scalars['Date']>;
-};
-
-export type GameVote = {
-  __typename?: 'GameVote';
-  user: User;
-  game: GameMeta;
 };
 
 export type GameMeta = {
@@ -243,18 +264,20 @@ export type ResolversTypes = ResolversObject<{
   ID: ResolverTypeWrapper<Scalars['ID']>;
   String: ResolverTypeWrapper<Scalars['String']>;
   Mutation: ResolverTypeWrapper<{}>;
-  MutationResponse: ResolversTypes['CreateRoomMutationResponse'] | ResolversTypes['JoinRoomMutationResponse'] | ResolversTypes['VoteForGameMutationResponse'];
+  MutationResponse: ResolversTypes['LoginMutationResponse'] | ResolversTypes['CreateRoomMutationResponse'] | ResolversTypes['JoinRoomMutationResponse'] | ResolversTypes['VoteForGameMutationResponse'];
   Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
-  User: ResolverTypeWrapper<User>;
+  LoginInput: LoginInput;
+  LoginMutationResponse: ResolverTypeWrapper<Omit<LoginMutationResponse, 'user'> & { user?: Maybe<ResolversTypes['User']> }>;
+  User: ResolverTypeWrapper<UserModel>;
   Player: never;
-  Room: ResolverTypeWrapper<Room>;
-  CreateRoomMutationResponse: ResolverTypeWrapper<CreateRoomMutationResponse>;
+  Room: ResolverTypeWrapper<RoomModel>;
+  CreateRoomMutationResponse: ResolverTypeWrapper<Omit<CreateRoomMutationResponse, 'room' | 'user'> & { room?: Maybe<ResolversTypes['Room']>, user?: Maybe<ResolversTypes['User']> }>;
   JoinRoomInput: JoinRoomInput;
-  JoinRoomMutationResponse: ResolverTypeWrapper<JoinRoomMutationResponse>;
+  JoinRoomMutationResponse: ResolverTypeWrapper<Omit<JoinRoomMutationResponse, 'room' | 'user'> & { room?: Maybe<ResolversTypes['Room']>, user?: Maybe<ResolversTypes['User']> }>;
+  GameVote: ResolverTypeWrapper<Omit<GameVote, 'user'> & { user: ResolversTypes['User'] }>;
   VoteForGameInput: VoteForGameInput;
-  VoteForGameMutationResponse: ResolverTypeWrapper<VoteForGameMutationResponse>;
+  VoteForGameMutationResponse: ResolverTypeWrapper<Omit<VoteForGameMutationResponse, 'vote'> & { vote?: Maybe<ResolversTypes['GameVote']> }>;
   Game: never;
-  GameVote: ResolverTypeWrapper<GameVote>;
   GameMeta: ResolverTypeWrapper<GameMeta>;
   AdditionalEntityFields: AdditionalEntityFields;
 }>;
@@ -267,18 +290,20 @@ export type ResolversParentTypes = ResolversObject<{
   ID: Scalars['ID'];
   String: Scalars['String'];
   Mutation: {};
-  MutationResponse: ResolversParentTypes['CreateRoomMutationResponse'] | ResolversParentTypes['JoinRoomMutationResponse'] | ResolversParentTypes['VoteForGameMutationResponse'];
+  MutationResponse: ResolversParentTypes['LoginMutationResponse'] | ResolversParentTypes['CreateRoomMutationResponse'] | ResolversParentTypes['JoinRoomMutationResponse'] | ResolversParentTypes['VoteForGameMutationResponse'];
   Boolean: Scalars['Boolean'];
-  User: User;
+  LoginInput: LoginInput;
+  LoginMutationResponse: Omit<LoginMutationResponse, 'user'> & { user?: Maybe<ResolversParentTypes['User']> };
+  User: UserModel;
   Player: never;
-  Room: Room;
-  CreateRoomMutationResponse: CreateRoomMutationResponse;
+  Room: RoomModel;
+  CreateRoomMutationResponse: Omit<CreateRoomMutationResponse, 'room' | 'user'> & { room?: Maybe<ResolversParentTypes['Room']>, user?: Maybe<ResolversParentTypes['User']> };
   JoinRoomInput: JoinRoomInput;
-  JoinRoomMutationResponse: JoinRoomMutationResponse;
+  JoinRoomMutationResponse: Omit<JoinRoomMutationResponse, 'room' | 'user'> & { room?: Maybe<ResolversParentTypes['Room']>, user?: Maybe<ResolversParentTypes['User']> };
+  GameVote: Omit<GameVote, 'user'> & { user: ResolversParentTypes['User'] };
   VoteForGameInput: VoteForGameInput;
-  VoteForGameMutationResponse: VoteForGameMutationResponse;
+  VoteForGameMutationResponse: Omit<VoteForGameMutationResponse, 'vote'> & { vote?: Maybe<ResolversParentTypes['GameVote']> };
   Game: never;
-  GameVote: GameVote;
   GameMeta: GameMeta;
   AdditionalEntityFields: AdditionalEntityFields;
 }>;
@@ -334,16 +359,25 @@ export type QueryResolvers<ContextType = any, ParentType extends ResolversParent
 }>;
 
 export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+  login?: Resolver<Maybe<ResolversTypes['LoginMutationResponse']>, ParentType, ContextType, RequireFields<MutationLoginArgs, never>>;
   createRoom?: Resolver<Maybe<ResolversTypes['CreateRoomMutationResponse']>, ParentType, ContextType>;
   joinRoom?: Resolver<Maybe<ResolversTypes['JoinRoomMutationResponse']>, ParentType, ContextType, RequireFields<MutationJoinRoomArgs, never>>;
   voteForGame?: Resolver<Maybe<ResolversTypes['VoteForGameMutationResponse']>, ParentType, ContextType, RequireFields<MutationVoteForGameArgs, never>>;
 }>;
 
 export type MutationResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['MutationResponse'] = ResolversParentTypes['MutationResponse']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'CreateRoomMutationResponse' | 'JoinRoomMutationResponse' | 'VoteForGameMutationResponse', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'LoginMutationResponse' | 'CreateRoomMutationResponse' | 'JoinRoomMutationResponse' | 'VoteForGameMutationResponse', ParentType, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+}>;
+
+export type LoginMutationResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['LoginMutationResponse'] = ResolversParentTypes['LoginMutationResponse']> = ResolversObject<{
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type UserResolvers<ContextType = any, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
@@ -352,6 +386,7 @@ export type UserResolvers<ContextType = any, ParentType extends ResolversParentT
   image?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
   player?: Resolver<Maybe<ResolversTypes['Player']>, ParentType, ContextType>;
   room?: Resolver<Maybe<ResolversTypes['Room']>, ParentType, ContextType>;
+  token?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -391,6 +426,12 @@ export type JoinRoomMutationResponseResolvers<ContextType = any, ParentType exte
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type GameVoteResolvers<ContextType = any, ParentType extends ResolversParentTypes['GameVote'] = ResolversParentTypes['GameVote']> = ResolversObject<{
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  game?: Resolver<ResolversTypes['GameMeta'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type VoteForGameMutationResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['VoteForGameMutationResponse'] = ResolversParentTypes['VoteForGameMutationResponse']> = ResolversObject<{
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -408,12 +449,6 @@ export type GameResolvers<ContextType = any, ParentType extends ResolversParentT
   dateEnded?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
 }>;
 
-export type GameVoteResolvers<ContextType = any, ParentType extends ResolversParentTypes['GameVote'] = ResolversParentTypes['GameVote']> = ResolversObject<{
-  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
-  game?: Resolver<ResolversTypes['GameMeta'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type GameMetaResolvers<ContextType = any, ParentType extends ResolversParentTypes['GameMeta'] = ResolversParentTypes['GameMeta']> = ResolversObject<{
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -427,14 +462,15 @@ export type Resolvers<ContextType = any> = ResolversObject<{
   Query?: QueryResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   MutationResponse?: MutationResponseResolvers<ContextType>;
+  LoginMutationResponse?: LoginMutationResponseResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   Player?: PlayerResolvers<ContextType>;
   Room?: RoomResolvers<ContextType>;
   CreateRoomMutationResponse?: CreateRoomMutationResponseResolvers<ContextType>;
   JoinRoomMutationResponse?: JoinRoomMutationResponseResolvers<ContextType>;
+  GameVote?: GameVoteResolvers<ContextType>;
   VoteForGameMutationResponse?: VoteForGameMutationResponseResolvers<ContextType>;
   Game?: GameResolvers<ContextType>;
-  GameVote?: GameVoteResolvers<ContextType>;
   GameMeta?: GameMetaResolvers<ContextType>;
 }>;
 
@@ -468,7 +504,7 @@ export type UserDbObject = {
   image?: Maybe<URL>,
   player?: Maybe<Player>,
   room?: Maybe<Room>,
-  jwt: string,
+  token?: Maybe<string>,
 };
 
 export type RoomDbObject = {

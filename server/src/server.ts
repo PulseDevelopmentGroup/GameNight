@@ -1,19 +1,20 @@
 import fastify from "fastify";
 import { ApolloServer } from "apollo-server-fastify";
-import { getEnvironment } from "./config";
+import { getEnvironment, Environment } from "./config";
 import { resolvers } from "./graphql/resolvers";
 import { loadSchemaSync } from "@graphql-tools/load";
 import { JsonFileLoader } from "@graphql-tools/json-file-loader";
-import { Database } from "./db/mongo";
+import { Database } from "./db/database";
+import { Authentication } from "./auth";
 import path from "path";
-import { Environment } from "./types";
 
 let env: Environment;
+let auth: Authentication;
 
 async function init() {
   env = await getEnvironment();
 
-  let db = new Database({
+  const db = new Database({
     user: env.dbUser,
     pass: env.dbPass,
     addr: env.dbAddr,
@@ -22,16 +23,22 @@ async function init() {
   });
   db.connect();
 
-  if (env.firstRun) {
+  auth = new Authentication({
+    secret: env.httpScrt,
+    expiration: "1y",
+    db: db,
+  });
+
+  if (env.firstRun || env.isSeeded!) {
     db.seed();
-    //TODO: Some sort of thingy to make sure the seed only happens once
+    process.env.GAMENIGHT_IS_SEEDED = "true";
   }
 }
 
 init()
   .then(main)
   .catch((e) => {
-    console.log(`There was an error starting the server "${e}"`);
+    console.log(`There was an error initializing the server "${e}"`);
     process.exit(1);
   });
 
@@ -48,9 +55,7 @@ function main() {
       playground: env.debug,
       schema,
       resolvers,
-      context: ({ req }) => {
-        const token = req.headers.authorization || "";
-      },
+      context: auth.apollo,
     }).createHandler()
   );
 

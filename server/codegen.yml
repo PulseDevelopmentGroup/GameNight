@@ -1,13 +1,16 @@
 overwrite: true
-schema: "schemav2.graphql"
-#documents: "schema.graphql"
+schema: "../common/schemav2.graphql"
 generates:
-  src/graphql/generated/resolver-types.ts:
+  ./src/graphql/generated/resolver-types.ts:
     config:
       useIndexSignature: true
       scalars:
         Date: Date
         URL: URL
+        ID: ObjectID
+      mappers:
+        User: ../models#UserModel
+        Room: ../models#RoomModel
     plugins:
       - "typescript"
       - "typescript-operations"

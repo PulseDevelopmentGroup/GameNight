@@ -1,9 +1,7 @@
-import { MongoClient, Db } from "mongodb";
-import { collections } from "./seed";
+import { MongoClient, Db, UpdateWriteOpResult, ObjectID } from "mongodb";
 import {
   UserDbObject,
   RoomDbObject,
-  GameMetaDbObject,
 } from "../graphql/generated/resolver-types";
 
 export interface DatabaseConfig {
@@ -38,8 +36,30 @@ export class Database {
     return this.client.close();
   }
 
+  set(
+    collection: string,
+    object: UserDbObject | RoomDbObject,
+    upsert?: boolean
+  ): Promise<UpdateWriteOpResult> {
+    return this.db
+      .collection(collection)
+      .updateOne({ _id: object._id }, object, {
+        upsert: upsert ?? true,
+      });
+  }
+
+  get(collection: string, search: ObjectID): Promise<void | null> {
+    return this.db.collection(collection).findOne({ _id: search });
+  }
+
   seed(): Promise<void> {
-    return new Promise<void>(async () => {
+    // TODO: As it stands now, seeding isn't entirely necessary,
+    // but I'll leave this function as a reminder that we might
+    // need to seed the DB in the future.
+
+    return new Promise<void>(() => {});
+
+    /*return new Promise<void>(async () => {
       collections.forEach(async (col) => {
         const collection = await this.db?.createCollection(col.name);
 
@@ -50,10 +70,10 @@ export class Database {
 
         col.enteries?.forEach(
           async (ent: UserDbObject | RoomDbObject | GameMetaDbObject) => {
-            await collection.insertOne(ent); //TODO: If this fails, does the promise get automaticlly rejected?
+            await collection.insertOne(ent);
           }
         );
       });
-    });
+    });*/
   }
 }

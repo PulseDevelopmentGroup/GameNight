@@ -1,4 +1,5 @@
-//TODO: Eventually, seed data should probably maybe be moved to a json file
+//TODO: See seed function in database.ts
+/*
 import { CollectionCreateOptions, ObjectID } from "mongodb";
 import {
   UserDbObject,
@@ -34,3 +35,4 @@ export const collections: SeedCollection[] = [
     ] as GameMetaDbObject[],
   },
 ];
+*/

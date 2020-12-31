@@ -9,6 +9,7 @@ type Query {
 }
 
 type Mutation {
+  login(loginInput: LoginInput): LoginMutationResponse
   createRoom: CreateRoomMutationResponse
   joinRoom(joinInput: JoinRoomInput): JoinRoomMutationResponse
   voteForGame(voteInput: VoteForGameInput): VoteForGameMutationResponse
@@ -20,13 +21,36 @@ interface MutationResponse {
   message: String!
 }
 
-type User @entity(additionalFields: [{ path: "jwt", type: "string" }]) {
+###
+#
+# Logins
+#
+###
+input LoginInput {
+  accessToken: String!
+}
+
+type LoginMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  user: User
+}
+
+###
+#
+# Users
+#
+###
+type User @entity {
   id: ID! @id
   username: String! @column
   image: URL @column
 
   player: Player @column
   room: Room @column
+
+  token: String @column
 }
 
 interface Player {
@@ -34,6 +58,11 @@ interface Player {
   user: User! @column
 }
 
+###
+#
+# Rooms
+#
+###
 type Room @entity {
   id: ID! @id
   code: String! @column
@@ -48,6 +77,10 @@ type Room @entity {
   dateCreated: Date! @column
 }
 
+type CreateRoomInput {
+  username: String!
+}
+
 type CreateRoomMutationResponse implements MutationResponse {
   code: String!
   success: Boolean!
@@ -58,6 +91,7 @@ type CreateRoomMutationResponse implements MutationResponse {
 
 input JoinRoomInput {
   roomCode: String!
+  username: String!
 }
 
 type JoinRoomMutationResponse implements MutationResponse {
@@ -66,6 +100,16 @@ type JoinRoomMutationResponse implements MutationResponse {
   message: String!
   room: Room
   user: User
+}
+
+###
+#
+# Votes
+#
+###
+type GameVote @entity {
+  user: User!
+  game: GameMeta!
 }
 
 input VoteForGameInput {
@@ -79,6 +123,11 @@ type VoteForGameMutationResponse implements MutationResponse {
   vote: GameVote
 }
 
+###
+#
+# Games
+#
+###
 interface Game {
   id: ID! @id
   active: Boolean! @column
@@ -86,11 +135,6 @@ interface Game {
 
   dateStarted: Date! @column
   dateEnded: Date @column
-}
-
-type GameVote @entity {
-  user: User!
-  game: GameMeta!
 }
 
 type GameMeta @entity {

@@ -8,7 +8,9 @@
       "type": "node",
       "request": "attach",
       "name": "Docker: Attach to Node",
-      "remoteRoot": "/usr/src/app"
+      "remoteRoot": "/app/src",
+      "localRoot": "${workspaceFolder}/server/src",
+      "restart": true
     },
     {
       "name": "Start TS Server",

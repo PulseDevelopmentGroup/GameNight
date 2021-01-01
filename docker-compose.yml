@@ -27,6 +27,7 @@ services:
       - ./server/.env
     ports:
       - 4001:4001
+      - 9229:9229
     networks:
       - frontend
       - backend

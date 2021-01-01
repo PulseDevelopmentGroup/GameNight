@@ -29,7 +29,7 @@ async function init() {
     db: db,
   });
 
-  if (env.firstRun || env.isSeeded!) {
+  if (env.firstRun || !env.isSeeded) {
     db.seed();
     process.env.GAMENIGHT_IS_SEEDED = "true";
   }
@@ -65,7 +65,7 @@ function main() {
 
   app.listen(env.httpPort, env.httpAddr, (err, add) => {
     if (err) {
-      console.error(`Unable to start webserver: "${err}"`);
+      console.error(`Unable to start server: "${err}"`);
       process.exit(1);
     }
     console.log(`Server listening at ${add}`);

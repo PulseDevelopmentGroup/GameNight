@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node dist/server.js",
-    "watch": "nodemon src/server.ts",
+    "watch": "nodemon -e ts,json,js --exec \"node --inspect=0.0.0.0 -r ts-node/register src/server.ts\"",
     "build": "tsc",
     "gen": "graphql-codegen --config codegen.yml",
     "watch:gen": "npm run gen -- -w"

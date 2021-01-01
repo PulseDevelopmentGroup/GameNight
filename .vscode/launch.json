@@ -5,6 +5,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "node",
+      "request": "attach",
+      "name": "Docker: Attach to Node",
+      "remoteRoot": "/app/src",
+      "localRoot": "${workspaceFolder}/server/src",
+      "restart": true
+    },
+    {
       "name": "Start TS Server",
       "program": "${workspaceFolder}/server/src/server.ts",
       "request": "launch",

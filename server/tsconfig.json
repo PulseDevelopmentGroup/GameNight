@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "allowSyntheticDefaultImports": true,
     "module": "commonjs",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2020",
+    "target": "es2018",
     "noImplicitAny": true,
     "moduleResolution": "node",
     "sourceMap": true,
@@ -12,7 +15,8 @@
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*", "src/types/*"]
-    }
+    },
+    "lib": ["es2018", "ESNext.AsyncIterable"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/graphql/entities/models.ts"]
 }

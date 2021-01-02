@@ -3,40 +3,21 @@ dotenv.config();
 
 import fastify from "fastify";
 import { ApolloServer } from "apollo-server-fastify";
-import { getEnvironment, Environment } from "./config";
-import { resolvers } from "./graphql/resolvers";
-import { loadSchemaSync } from "@graphql-tools/load";
-import { JsonFileLoader } from "@graphql-tools/json-file-loader";
-import { Database } from "./db/database";
-import { Authentication } from "./auth";
+import { buildSchema } from "type-graphql";
+import { GraphQLSchema } from "graphql";
+import { connect } from "mongoose";
+import { ObjectId } from "mongodb";
 import path from "path";
+import { URL } from "url";
+
+import { ObjectIdScalar, URLScalar } from "./graphql/scalars";
+import { RoomResolver } from "./graphql/resolvers/room";
+import { UserResolver } from "./graphql/resolvers/user";
+import { TypegooseMiddleware } from "./middleware";
+import { getEnvironment, Environment } from "./config";
 
 let env: Environment;
-let auth: Authentication;
-
-async function init() {
-  env = await getEnvironment();
-
-  const db = new Database({
-    user: env.dbUser,
-    pass: env.dbPass,
-    addr: env.dbAddr,
-    port: env.dbPort,
-    name: env.dbName,
-  });
-  db.connect();
-
-  auth = new Authentication({
-    secret: env.httpScrt,
-    expiration: "1y",
-    db: db,
-  });
-
-  if (env.firstRun || !env.isSeeded) {
-    db.seed();
-    process.env.GAMENIGHT_IS_SEEDED = "true";
-  }
-}
+let schema: GraphQLSchema;
 
 init()
   .then(main)
@@ -45,20 +26,52 @@ init()
     process.exit(1);
   });
 
-function main() {
-  const schema = loadSchemaSync(
-    path.join(__dirname, "../graphql.schema.json"),
-    { loaders: [new JsonFileLoader()] }
+/**
+ * Server initialization function
+ * Initializes the server config, database, and authentication mechanisms
+ */
+async function init() {
+  // Load enviornment variables
+  env = await getEnvironment();
+
+  // Connect to database
+  await connect(
+    `mongodb://${env.dbUser}:${env.dbPass}@${env.dbAddr}:${env.dbPort}`,
+    {
+      useCreateIndex: true,
+      useUnifiedTopology: true,
+      useNewUrlParser: true,
+      serverSelectionTimeoutMS: env.debug ? 10000 : undefined,
+      socketTimeoutMS: env.debug ? 10000 : undefined,
+    }
   );
 
+  // Build schema and generate GraphQL schema file
+  schema = await buildSchema({
+    resolvers: [RoomResolver, UserResolver],
+    emitSchemaFile: path.resolve(__dirname, "schema.gql"),
+    globalMiddlewares: [TypegooseMiddleware],
+    scalarsMap: [
+      { type: ObjectId, scalar: ObjectIdScalar },
+      { type: URL, scalar: URLScalar },
+    ],
+    validate: false,
+  });
+}
+
+/**
+ * Main function (Not that we need a whole comment to mention that)
+ */
+function main() {
+  // Initialize server
   const app = fastify();
   app.register(
+    // Register Apollo handler
+    // NOTE: Must be on version 3 (alpha) to support current version of fastify
     new ApolloServer({
       introspection: env.debug,
       playground: env.debug,
       schema,
-      resolvers,
-      context: auth.apollo,
     }).createHandler()
   );
 

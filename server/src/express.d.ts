@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import { User as UserEntity } from "./graphql/entities/user";
 
 // On 1/2/2021, the first offical "hack" was implemented

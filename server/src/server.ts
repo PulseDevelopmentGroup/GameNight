@@ -21,7 +21,7 @@ import { UserResolver } from "./graphql/resolvers/user";
 import { TypegooseMiddleware } from "./middleware";
 import { getEnvironment, Environment } from "./config";
 import { userAuthChecker } from "./auth";
-import { UserModel } from "./graphql/entities/user";
+import { User, UserModel } from "./graphql/entities/user";
 
 let env: Environment;
 let schema: GraphQLSchema;
@@ -43,16 +43,18 @@ async function init() {
   env = await getEnvironment();
 
   // Connect to database
-  await connect(
-    `mongodb://${env.dbUser}:${env.dbPass}@${env.dbAddr}:${env.dbPort}`,
-    {
-      useCreateIndex: true,
-      useUnifiedTopology: true,
-      useNewUrlParser: true,
-      serverSelectionTimeoutMS: env.debug ? 10000 : undefined,
-      socketTimeoutMS: env.debug ? 10000 : undefined,
-    }
-  );
+  await connect(`mongodb://${env.dbAddr}:${env.dbPort}`, {
+    auth: {
+      user: env.dbUser,
+      password: env.dbPass,
+    },
+    dbName: env.dbName,
+    useCreateIndex: true,
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+    serverSelectionTimeoutMS: env.debug ? 10000 : undefined,
+    socketTimeoutMS: env.debug ? 10000 : undefined,
+  });
 
   // Build schema and generate GraphQL schema file
   schema = await buildSchema({
@@ -67,6 +69,7 @@ async function init() {
     validate: false,
   });
 
+  //TODO: Move all this logic out of the main server file
   passport.use(
     new GitHubStrategy(
       {
@@ -88,7 +91,7 @@ async function init() {
             }
 
             UserModel.create({
-              username: profile.displayName,
+              username: profile.username!, //TODO: saying this is never undefined is bad practice, but I'm open to suggestions
               roles: ["USER"],
               authentication: {
                 githubId: profile.id,
@@ -97,10 +100,10 @@ async function init() {
               },
             })
               .catch((e) => {
-                done(e, null);
+                return done(e, null);
               })
               .then((doc) => {
-                done(null, doc);
+                return done(null, doc);
               });
           }
         );
@@ -108,12 +111,19 @@ async function init() {
     )
   );
 
-  passport.serializeUser((user, done) => {
-    done(null, user._id); //TODO: This errors out saying _id does not exist... why?
+  passport.serializeUser((user: any, done) => {
+    //TODO: Give this a defined type
+    done(null, user._id);
   });
 
-  passport.deserializeUser((user: Express.User, done) => {
-    done(null, user);
+  passport.deserializeUser((id: string, done) => {
+    UserModel.findById(id)
+      .then((user) => {
+        done(null, user as User);
+      })
+      .catch((e) => {
+        done(e);
+      });
   });
 
   // Initialize ApolloServer
@@ -135,11 +145,19 @@ function main() {
 
   app.use(passport.initialize(), passport.session());
 
-  app.get("/ping", (req, res) => {
-    res.send("Pong");
+  app.get("/ping", async (req, res) => {
+    /*const user = await UserModel.findById(req.user?._id);
+
+    if (!user) {
+      return res.send("Pong");
+    }
+
+    res.send(user.toJSON());*/
+
+    res.send(JSON.stringify(req.user));
   });
 
-  app.get("/auth/login", (req, res) => {
+  app.get("/login", (req, res) => {
     res.redirect("/auth/github");
   });
 
@@ -150,12 +168,18 @@ function main() {
 
   app.get(
     "/auth/github",
-    passport.authenticate("github", { scope: ["read:user"] })
+    passport.authenticate("github", {
+      scope: ["read:user"],
+      failureRedirect: "/login",
+    })
   );
 
   app.get(
     "/auth/github/callback",
-    passport.authenticate("github", { failureRedirect: "/login" }),
+    passport.authenticate("github", {
+      successRedirect: "/ping",
+      failureRedirect: "/login",
+    }),
     (req, res) => {
       res.send(req.user);
       res.send("You reached the redirect URI");

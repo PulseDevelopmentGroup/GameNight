@@ -1,16 +1,19 @@
 import { getModelForClass } from "@typegoose/typegoose";
-import { AnyParamConstructor } from "@typegoose/typegoose/lib/types";
+import {
+  AnyParamConstructor,
+  ReturnModelType,
+} from "@typegoose/typegoose/lib/types";
 import * as mongoose from "mongoose";
 
 /**
  * `getModel()` wraps `getModelForClass()` and specifies what mongoose instance to use along with any custom options
  */
-export const getModel = (
-  cl: AnyParamConstructor<any>,
+export function getModel<U extends AnyParamConstructor<any>, QueryHelpers = {}>(
+  cl: U,
   collection: string
-): any => {
+): ReturnModelType<U, QueryHelpers> {
   return getModelForClass(cl, {
     existingMongoose: mongoose,
     schemaOptions: { collection: collection },
   });
-};
+}

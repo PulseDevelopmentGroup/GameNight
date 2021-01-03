@@ -32,7 +32,10 @@ export class RoomResolver {
     let users: User[] = [];
 
     room.members.forEach(async (id) => {
-      users.push(await UserModel.findById(id));
+      const user = await UserModel.findById(id);
+      if (user) {
+        users.push(user);
+      }
     });
 
     return users;
@@ -44,7 +47,10 @@ export class RoomResolver {
     let games: Game[] = [];
 
     room.gameHistory?.forEach(async (id) => {
-      games.push(await GameModel.findById(id));
+      const game = await GameModel.findById(id);
+      if (game) {
+        games.push(game);
+      }
     });
 
     return games;

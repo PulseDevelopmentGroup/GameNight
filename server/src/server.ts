@@ -1,12 +1,17 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import fastify from "fastify";
-import { ApolloServer } from "apollo-server-fastify";
+import express from "express";
+import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { GraphQLSchema } from "graphql";
 import { connect } from "mongoose";
 import { ObjectId } from "mongodb";
+import passport from "passport";
+import {
+  Strategy as GitHubStrategy,
+  Profile as GitHubProfile,
+} from "passport-github2";
 import path from "path";
 import { URL } from "url";
 
@@ -15,9 +20,12 @@ import { RoomResolver } from "./graphql/resolvers/room";
 import { UserResolver } from "./graphql/resolvers/user";
 import { TypegooseMiddleware } from "./middleware";
 import { getEnvironment, Environment } from "./config";
+import { userAuthChecker } from "./auth";
+import { User, UserModel } from "./graphql/entities/user";
 
 let env: Environment;
 let schema: GraphQLSchema;
+let apolloServer: ApolloServer;
 
 init()
   .then(main)
@@ -55,7 +63,66 @@ async function init() {
       { type: ObjectId, scalar: ObjectIdScalar },
       { type: URL, scalar: URLScalar },
     ],
+    authChecker: userAuthChecker,
     validate: false,
+  });
+
+  passport.use(
+    new GitHubStrategy(
+      {
+        clientID: env.authGithubID,
+        clientSecret: env.authGithubSecret,
+        callbackURL: "http://localhost:4001/auth/github/callback", //TODO: This will have to update dynamiclly
+      },
+      async (
+        accessToken: string,
+        refreshToken: string,
+        profile: GitHubProfile,
+        done: any
+      ) => {
+        UserModel.findOne(
+          { "authentication.githubId": profile.id },
+          (err, doc) => {
+            if (doc) {
+              return done(err, doc);
+            }
+
+            UserModel.create({
+              username: profile.displayName,
+              roles: ["USER"],
+              authentication: {
+                githubId: profile.id,
+                githubAccessToken: accessToken,
+                githubRefreshToken: refreshToken,
+              },
+            })
+              .catch((e) => {
+                done(e, null);
+              })
+              .then((doc) => {
+                done(null, doc);
+              });
+          }
+        );
+      }
+    )
+  );
+
+  passport.serializeUser((user, done) => {
+    done(null, user._id);
+  });
+
+  passport.deserializeUser((user: Express.User, done) => {
+    done(null, user);
+  });
+
+  // Initialize ApolloServer
+  // NOTE: Must be on version 3 (alpha) to support current version of fastify
+  apolloServer = new ApolloServer({
+    introspection: env.debug,
+    playground: env.debug,
+    schema,
+    context: (req) => {},
   });
 }
 
@@ -63,27 +130,40 @@ async function init() {
  * Main function (Not that we need a whole comment to mention that)
  */
 function main() {
-  // Initialize server
-  const app = fastify();
-  app.register(
-    // Register Apollo handler
-    // NOTE: Must be on version 3 (alpha) to support current version of fastify
-    new ApolloServer({
-      introspection: env.debug,
-      playground: env.debug,
-      schema,
-    }).createHandler()
-  );
+  // Initialize server and register Apollo handler
+  const app = express();
+  apolloServer.applyMiddleware({ app });
 
-  app.get("/ping", async () => {
-    return "pong";
+  app.use(passport.initialize() /*, passport.session()*/);
+
+  app.get("/ping", (req, res) => {
+    res.send("Pong");
   });
 
-  app.listen(env.httpPort, env.httpAddr, (err, add) => {
-    if (err) {
-      console.error(`Unable to start server: "${err}"`);
-      process.exit(1);
+  app.get("/auth/login", (req, res) => {
+    res.redirect("/auth/github");
+  });
+
+  app.get("/auth/logout", (req, res) => {
+    req.logout();
+    res.send(req.user);
+  });
+
+  app.get(
+    "/auth/github",
+    passport.authenticate("github", { scope: ["read:user"] })
+  );
+
+  app.get(
+    "/auth/github/callback",
+    passport.authenticate("github", { failureRedirect: "/login" }),
+    (req, res) => {
+      res.send(req.user);
+      res.send("You reached the redirect URI");
     }
-    console.log(`Server listening at ${add}`);
+  );
+
+  app.listen(env.httpPort, env.httpAddr, () => {
+    console.log(`Server listening at ${env.httpAddr}:${env.httpPort}`);
   });
 }

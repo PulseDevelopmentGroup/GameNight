@@ -3,6 +3,12 @@
 # !!!   DO NOT MODIFY THIS FILE BY YOURSELF   !!!
 # -----------------------------------------------
 
+type Auth {
+  githubAccessToken: String
+  githubId: String
+  githubRefreshToken: String
+}
+
 """
 The javascript `Date` as string. Type represents date and time as the ISO Date string.
 """
@@ -57,9 +63,9 @@ scalar URL
 
 type User {
   _id: ObjectId!
+  authentication: Auth
   image: URL
   nickname: String
-  token: String!
   username: String!
 }
 

@@ -1,13 +1,18 @@
 export interface Environment {
   debug: boolean;
+
   httpAddr: string;
-  httpPort: string;
+  httpPort: number;
   httpScrt: string;
+
   dbAddr: string;
-  dbPort: string;
+  dbPort: number;
   dbName: string;
   dbUser: string;
   dbPass: string;
+
+  authGithubID: string;
+  authGithubSecret: string;
 }
 
 export const getEnvironment = () => {
@@ -15,13 +20,15 @@ export const getEnvironment = () => {
     let env: Environment = {
       debug: Boolean(process.env.GAMENIGHT_DEBUG) ?? false,
       httpAddr: process.env.GAMENIGHT_HTTP_ADDR ?? "0.0.0.0",
-      httpPort: process.env.GAMENIGHT_HTTP_PORT ?? "8080",
+      httpPort: Number(process.env.GAMENIGHT_HTTP_PORT) ?? 8080,
       httpScrt: process.env.GAMENIGHT_HTTP_SECRET ?? "",
       dbAddr: process.env.GAMENIGHT_DB_ADDR ?? "",
-      dbPort: process.env.GAMENIGHT_DB_PORT ?? "27017",
+      dbPort: Number(process.env.GAMENIGHT_DB_PORT) ?? 27017,
       dbName: process.env.GAMENIGHT_DB_NAME ?? "gamenight",
       dbUser: process.env.GAMENIGHT_DB_USER ?? "admin",
       dbPass: process.env.GAMENIGHT_DB_PASS ?? "",
+      authGithubID: process.env.GAMENIGHT_AUTH_GITHUB_CLIENT_ID ?? "",
+      authGithubSecret: process.env.GAMENIGHT_AUTH_GITHUB_CLIENT_SECRET ?? "",
     };
 
     if (!env.httpScrt || !env.dbAddr || !env.dbPass) {

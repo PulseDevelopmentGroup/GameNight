@@ -21,7 +21,7 @@ import { UserResolver } from "./graphql/resolvers/user";
 import { TypegooseMiddleware } from "./middleware";
 import { getEnvironment, Environment } from "./config";
 import { userAuthChecker } from "./auth";
-import { User, UserModel } from "./graphql/entities/user";
+import { UserModel } from "./graphql/entities/user";
 
 let env: Environment;
 let schema: GraphQLSchema;
@@ -109,7 +109,7 @@ async function init() {
   );
 
   passport.serializeUser((user, done) => {
-    done(null, user._id);
+    done(null, user._id); //TODO: This errors out saying _id does not exist... why?
   });
 
   passport.deserializeUser((user: Express.User, done) => {
@@ -117,7 +117,6 @@ async function init() {
   });
 
   // Initialize ApolloServer
-  // NOTE: Must be on version 3 (alpha) to support current version of fastify
   apolloServer = new ApolloServer({
     introspection: env.debug,
     playground: env.debug,
@@ -134,7 +133,7 @@ function main() {
   const app = express();
   apolloServer.applyMiddleware({ app });
 
-  app.use(passport.initialize() /*, passport.session()*/);
+  app.use(passport.initialize(), passport.session());
 
   app.get("/ping", (req, res) => {
     res.send("Pong");

@@ -2,18 +2,23 @@ import "reflect-metadata";
 import { ModelOptions, prop as Property } from "@typegoose/typegoose";
 import { Field, ObjectType } from "type-graphql";
 
+//TODO: This will likely not be included in the GraphQL schema in the future
 @ObjectType()
 @ModelOptions({ schemaOptions: { _id: false } })
 export class Auth {
-  @Field({ nullable: true })
+  @Field()
   @Property()
-  githubId?: string;
+  provider: string;
 
-  @Field({ nullable: true })
+  @Field()
   @Property()
-  githubAccessToken?: string;
+  id: string;
 
-  @Field({ nullable: true })
+  @Field()
   @Property()
-  githubRefreshToken?: string;
+  accessToken: string;
+
+  @Field()
+  @Property()
+  refreshToken: string;
 }

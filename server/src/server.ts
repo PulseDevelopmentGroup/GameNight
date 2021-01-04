@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import express from "express";
+import express, { Express } from "express";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { GraphQLSchema } from "graphql";
@@ -10,18 +10,19 @@ import { ObjectId } from "mongodb";
 import passport from "passport";
 import path from "path";
 import { URL } from "url";
-import cookieSession from "cookie-session";
 
 import { ObjectIdScalar, URLScalar } from "./graphql/scalars";
 import { RoomResolver } from "./graphql/resolvers/room";
 import { UserResolver } from "./graphql/resolvers/user";
 import { TypegooseMiddleware } from "./middleware";
 import { getEnvironment, Environment } from "./config";
-import { setupAuth, gqlAuthChecker } from "./auth";
+import { Authentication } from "./auth";
 import { UserModel } from "./graphql/entities/user";
 
 let env: Environment;
 let schema: GraphQLSchema;
+let auth: Authentication;
+let server: Express;
 let apolloServer: ApolloServer;
 
 init()
@@ -38,6 +39,27 @@ init()
 async function init() {
   // Load enviornment variables
   env = await getEnvironment();
+
+  // Initialize webserver
+  server = express();
+
+  if (env.auth) {
+    // Setup authentication
+    auth = new Authentication({
+      server,
+      httpSecret: env.httpScrt,
+      githubStragety: {
+        clientID: env.authGithubID,
+        clientSecret: env.authGithubSecret,
+        callbackURL: "http://localhost:4001/auth/external/github/callback",
+      },
+      discordStragety: {
+        clientID: env.authDiscordID,
+        clientSecret: env.authDiscordSecret,
+        callbackURL: "http://localhost:4001/auth/external/discord/callback",
+      },
+    });
+  }
 
   // Connect to database
   await connect(`mongodb://${env.dbAddr}:${env.dbPort}`, {
@@ -62,28 +84,41 @@ async function init() {
       { type: ObjectId, scalar: ObjectIdScalar },
       { type: URL, scalar: URLScalar },
     ],
-    authChecker: gqlAuthChecker,
+    authChecker: env.auth ? auth.gqlAuthChecker : undefined,
     validate: false,
   });
 
   // Initialize ApolloServer
   apolloServer = new ApolloServer({
+    debug: env.debug,
     playground: {
       settings: {
-        "request.credentials": "include",
+        "request.credentials": "include", // Required to pass auth to graphql endpoint from playground
       },
     },
     schema,
-    context: async ({ req }) => {
-      if (req.user) {
-        return {
-          req,
-          user: await UserModel.findById(req.user._id),
-        };
-      }
-
-      throw new Error("You must be logged in");
+    subscriptions: {
+      path: "/subscriptions",
+      onConnect: (_, ws: any) => {
+        console.log(ws.upgradeReq);
+        auth.sessionMiddleware(ws.upgradeReq, {} as any, () => {
+          console.log(ws.upgradeReq.session);
+        });
+      },
     },
+    // Ensure user is logged in before accessing GraphQL endpoint
+    context: env.auth
+      ? async ({ req }) => {
+          if (req.user) {
+            return {
+              req,
+              user: await UserModel.findById(req.user._id),
+            };
+          }
+
+          throw new Error("You must be logged in");
+        }
+      : undefined,
   });
 }
 
@@ -91,68 +126,65 @@ async function init() {
  * Main function (Not that we need a whole comment to mention that)
  */
 function main() {
-  // Initialize server and register Apollo handler
-  const app = express();
+  if (env.auth) {
+    // Initialize Passport strageties
+    auth.setupPassport();
 
-  // Setup passport authentication
-  setupAuth({
-    githubStragety: {
-      clientID: env.authGithubID,
-      clientSecret: env.authGithubSecret,
-      callbackURL: "http://localhost:4001/auth/github/callback",
-    },
-  });
+    // Register auth middlewares
+    auth.registerMiddlewares();
 
-  // Apply middlewares
-  app.use(
-    cookieSession({
-      maxAge: 24 * 60 * 60 * 1000,
-      keys: [env.httpScrt],
-    }),
-    passport.initialize(),
-    passport.session()
-  );
+    server.get("/login", (_, res) => {
+      res.send(`
+        <a href="/auth/external/github">GitHub</a>
+        <a href="/auth/external/discord">Discord</a>
+      `);
+    });
 
-  // Apply ApolloServer middleware
-  apolloServer.applyMiddleware({ app });
+    server.get("/logout", (_, res) => {
+      res.redirect("/auth/logout");
+    });
 
-  app.get("/", async (req, res) => {
+    server.get(["/logout", "/auth/logout"], (req, res) => {
+      req.logout();
+      res.redirect("/");
+    });
+
+    server.get("/auth/external/discord", passport.authenticate("discord"));
+
+    server.get(
+      "/auth/external/discord/callback",
+      passport.authenticate("discord", {
+        failureRedirect: "/login",
+      }),
+      (_, res) => {
+        res.redirect("/");
+      }
+    );
+
+    server.get("/auth/external/github", passport.authenticate("github"));
+
+    server.get(
+      "/auth/external/github/callback",
+      passport.authenticate("github", {
+        failureRedirect: "/login",
+      }),
+      (_, res) => {
+        res.redirect("/");
+      }
+    );
+  }
+
+  server.get("/", (req, res) => {
     if (req.user) {
       return res.send(JSON.stringify(req.user));
     }
     res.send("You don't appear to be logged in");
   });
 
-  app.get("/login", (req, res) => {
-    res.redirect("/auth/github");
-  });
+  // Apply ApolloServer middleware
+  apolloServer.applyMiddleware({ app: server });
 
-  app.get("/logout", (req, res) => {
-    res.redirect("/auth/logout");
-  });
-
-  app.get("/auth/logout", (req, res) => {
-    req.logout();
-    res.redirect("/");
-  });
-
-  app.get(
-    "/auth/github",
-    passport.authenticate("github", {
-      scope: ["read:user"],
-      failureRedirect: "/login",
-    })
-  );
-
-  app.get(
-    "/auth/github/callback",
-    passport.authenticate("github", {
-      successRedirect: "/",
-      failureRedirect: "/login",
-    })
-  );
-
-  app.listen(env.httpPort, env.httpAddr, () => {
+  server.listen(env.httpPort, env.httpAddr, () => {
     console.log(`Server listening at ${env.httpAddr}:${env.httpPort}`);
   });
 }

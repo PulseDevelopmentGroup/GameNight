@@ -34,7 +34,7 @@ export class User {
   @Authorized(["ADMIN"])
   @Field((type) => Auth, { nullable: true })
   @Property()
-  authentication?: Auth;
+  auth?: Auth;
 }
 
 export const UserModel = getModel(User, "users");

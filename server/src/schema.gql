@@ -4,9 +4,10 @@
 # -----------------------------------------------
 
 type Auth {
-  githubAccessToken: String
-  githubId: String
-  githubRefreshToken: String
+  accessToken: String!
+  id: String!
+  provider: String!
+  refreshToken: String!
 }
 
 """
@@ -63,7 +64,7 @@ scalar URL
 
 type User {
   _id: ObjectId!
-  authentication: Auth
+  auth: Auth
   image: URL
   nickname: String
   username: String!

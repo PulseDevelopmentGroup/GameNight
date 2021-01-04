@@ -8,20 +8,17 @@ import { GraphQLSchema } from "graphql";
 import { connect } from "mongoose";
 import { ObjectId } from "mongodb";
 import passport from "passport";
-import {
-  Strategy as GitHubStrategy,
-  Profile as GitHubProfile,
-} from "passport-github2";
 import path from "path";
 import { URL } from "url";
+import cookieSession from "cookie-session";
 
 import { ObjectIdScalar, URLScalar } from "./graphql/scalars";
 import { RoomResolver } from "./graphql/resolvers/room";
 import { UserResolver } from "./graphql/resolvers/user";
 import { TypegooseMiddleware } from "./middleware";
 import { getEnvironment, Environment } from "./config";
-import { userAuthChecker } from "./auth";
-import { User, UserModel } from "./graphql/entities/user";
+import { setupAuth, gqlAuthChecker } from "./auth";
+import { UserModel } from "./graphql/entities/user";
 
 let env: Environment;
 let schema: GraphQLSchema;
@@ -65,73 +62,28 @@ async function init() {
       { type: ObjectId, scalar: ObjectIdScalar },
       { type: URL, scalar: URLScalar },
     ],
-    authChecker: userAuthChecker,
+    authChecker: gqlAuthChecker,
     validate: false,
-  });
-
-  //TODO: Move all this logic out of the main server file
-  passport.use(
-    new GitHubStrategy(
-      {
-        clientID: env.authGithubID,
-        clientSecret: env.authGithubSecret,
-        callbackURL: "http://localhost:4001/auth/github/callback", //TODO: This will have to update dynamiclly
-      },
-      async (
-        accessToken: string,
-        refreshToken: string,
-        profile: GitHubProfile,
-        done: any
-      ) => {
-        UserModel.findOne(
-          { "authentication.githubId": profile.id },
-          (err, doc) => {
-            if (doc) {
-              return done(err, doc);
-            }
-
-            UserModel.create({
-              username: profile.username!, //TODO: saying this is never undefined is bad practice, but I'm open to suggestions
-              roles: ["USER"],
-              authentication: {
-                githubId: profile.id,
-                githubAccessToken: accessToken,
-                githubRefreshToken: refreshToken,
-              },
-            })
-              .catch((e) => {
-                return done(e, null);
-              })
-              .then((doc) => {
-                return done(null, doc);
-              });
-          }
-        );
-      }
-    )
-  );
-
-  passport.serializeUser((user: any, done) => {
-    //TODO: Give this a defined type
-    done(null, user._id);
-  });
-
-  passport.deserializeUser((id: string, done) => {
-    UserModel.findById(id)
-      .then((user) => {
-        done(null, user as User);
-      })
-      .catch((e) => {
-        done(e);
-      });
   });
 
   // Initialize ApolloServer
   apolloServer = new ApolloServer({
-    introspection: env.debug,
-    playground: env.debug,
+    playground: {
+      settings: {
+        "request.credentials": "include",
+      },
+    },
     schema,
-    context: (req) => {},
+    context: async ({ req }) => {
+      if (req.user) {
+        return {
+          req,
+          user: await UserModel.findById(req.user._id),
+        };
+      }
+
+      throw new Error("You must be logged in");
+    },
   });
 }
 
@@ -141,29 +93,47 @@ async function init() {
 function main() {
   // Initialize server and register Apollo handler
   const app = express();
+
+  // Setup passport authentication
+  setupAuth({
+    githubStragety: {
+      clientID: env.authGithubID,
+      clientSecret: env.authGithubSecret,
+      callbackURL: "http://localhost:4001/auth/github/callback",
+    },
+  });
+
+  // Apply middlewares
+  app.use(
+    cookieSession({
+      maxAge: 24 * 60 * 60 * 1000,
+      keys: [env.httpScrt],
+    }),
+    passport.initialize(),
+    passport.session()
+  );
+
+  // Apply ApolloServer middleware
   apolloServer.applyMiddleware({ app });
 
-  app.use(passport.initialize(), passport.session());
-
-  app.get("/ping", async (req, res) => {
-    /*const user = await UserModel.findById(req.user?._id);
-
-    if (!user) {
-      return res.send("Pong");
+  app.get("/", async (req, res) => {
+    if (req.user) {
+      return res.send(JSON.stringify(req.user));
     }
-
-    res.send(user.toJSON());*/
-
-    res.send(JSON.stringify(req.user));
+    res.send("You don't appear to be logged in");
   });
 
   app.get("/login", (req, res) => {
     res.redirect("/auth/github");
   });
 
+  app.get("/logout", (req, res) => {
+    res.redirect("/auth/logout");
+  });
+
   app.get("/auth/logout", (req, res) => {
     req.logout();
-    res.send(req.user);
+    res.redirect("/");
   });
 
   app.get(
@@ -177,13 +147,9 @@ function main() {
   app.get(
     "/auth/github/callback",
     passport.authenticate("github", {
-      successRedirect: "/ping",
+      successRedirect: "/",
       failureRedirect: "/login",
-    }),
-    (req, res) => {
-      res.send(req.user);
-      res.send("You reached the redirect URI");
-    }
+    })
   );
 
   app.listen(env.httpPort, env.httpAddr, () => {

@@ -10,6 +10,7 @@ import { ObjectId } from "mongodb";
 import passport from "passport";
 import path from "path";
 import { URL } from "url";
+import Redis, { RedisOptions } from "ioredis";
 
 import { ObjectIdScalar, URLScalar } from "./graphql/scalars";
 import { RoomResolver } from "./graphql/resolvers/room";
@@ -18,6 +19,7 @@ import { TypegooseMiddleware } from "./middleware";
 import { getEnvironment, Environment } from "./config";
 import { Authentication } from "./auth";
 import { UserModel } from "./graphql/entities/user";
+import { RedisPubSub } from "graphql-redis-subscriptions";
 
 let env: Environment;
 let schema: GraphQLSchema;
@@ -75,17 +77,29 @@ async function init() {
     socketTimeoutMS: env.debug ? 10000 : undefined,
   });
 
+  // Configure Redis
+  const redisOptions: RedisOptions = {
+    host: env.redisAddr,
+    port: env.redisPort,
+    retryStrategy: (times) => Math.max(times * 100, 3000),
+  };
+
   // Build schema and generate GraphQL schema file
   schema = await buildSchema({
     resolvers: [RoomResolver, UserResolver],
     emitSchemaFile: path.resolve(__dirname, "schema.gql"),
     globalMiddlewares: [TypegooseMiddleware],
+    dateScalarMode: "isoDate",
     scalarsMap: [
       { type: ObjectId, scalar: ObjectIdScalar },
       { type: URL, scalar: URLScalar },
     ],
     authChecker: env.auth ? auth.gqlAuthChecker : undefined,
     validate: false,
+    pubSub: new RedisPubSub({
+      publisher: new Redis(redisOptions),
+      subscriber: new Redis(redisOptions),
+    }),
   });
 
   // Initialize ApolloServer

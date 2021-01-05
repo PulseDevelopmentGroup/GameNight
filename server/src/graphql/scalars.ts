@@ -1,36 +1,32 @@
 import { GraphQLScalarType, GraphQLError, Kind } from "graphql";
 import { URL } from "url";
-import * as mongoose from "mongoose";
+import { ObjectId } from "mongodb";
 
 export const ObjectIdScalar = new GraphQLScalarType({
   name: "ObjectId",
   description: "Mongo object id scalar type",
   serialize(value: unknown): string {
-    // Check the type of received value
-    if (!(value instanceof mongoose.Types.ObjectId)) {
+    if (!(value instanceof ObjectId)) {
       throw new Error("ObjectIdScalar can only serialize ObjectId values");
     }
-    return (value as mongoose.Types.ObjectId).toHexString(); // value sent to the client
+    return value.toHexString();
   },
-  parseValue(value: unknown): mongoose.Types.ObjectId {
-    // check the type of received value
+  parseValue(value: unknown): ObjectId {
     if (typeof value !== "string") {
       throw new Error("ObjectIdScalar can only parse string values");
     }
-    return new mongoose.Types.ObjectId(value); // value from the client input variables
+    return new ObjectId(value);
   },
-  parseLiteral(ast): mongoose.Types.ObjectId {
-    // check the type of received value
+  parseLiteral(ast): ObjectId {
     if (ast.kind !== Kind.STRING) {
       throw new Error("ObjectIdScalar can only parse string values");
     }
-    return new mongoose.Types.ObjectId(ast.value); // value from the client query
+    return new ObjectId(ast.value);
   },
 });
 
 export const URLScalar = new GraphQLScalarType({
   name: "URL",
-
   description:
     "A field whose value conforms to the standard URL format as specified in RFC3986: https://www.ietf.org/rfc/rfc3986.txt.",
 

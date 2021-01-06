@@ -29,6 +29,16 @@ interface gqlAuthContext {
 
 export class Authentication {
   private options: AuthenticationOptions;
+  sessionMiddleware: any; // Unfortunately, using any here is really the only option
+
+  constructor(options: AuthenticationOptions) {
+    this.options = options;
+    this.sessionMiddleware = cookieSession({
+      maxAge: 24 * 60 * 60 * 1000,
+      keys: [this.options.httpSecret],
+      sameSite: true,
+    });
+  }
 
   /**
    *
@@ -58,16 +68,6 @@ export class Authentication {
     return false;
   };
 
-  sessionMiddleware: any; // Unfortunately, using any here is really the only option
-
-  constructor(options: AuthenticationOptions) {
-    this.options = options;
-    this.sessionMiddleware = cookieSession({
-      maxAge: 24 * 60 * 60 * 1000,
-      keys: [this.options.httpSecret],
-    });
-  }
-
   /**
    * Registers passport and cookie middlewares with Express
    */
@@ -87,44 +87,40 @@ export class Authentication {
    * @param profile User profile (comes from external provider)
    * @param done Callback function
    */
-  private authUser(
+  private authOAuth(
     accessToken: string,
     refreshToken: string,
     profile: passport.Profile,
     done: any
   ) {
     // Look for user
-    UserModel.findOne({ "auth.id": profile.id }, (err, user) => {
-      if (err) {
-        return done(err, null);
-      }
+    UserModel.findOne({ "auth.id": profile.id })
+      .then((user) => {
+        // If user is found, use that user for auth
+        if (user) {
+          user.updateOne({ lastLogin: new Date() }).exec();
+          return done(null, user);
+        }
 
-      // If user is found, use that user for auth
-      if (user) {
-        user.lastLogin = new Date();
-        return done(null, user);
-      }
-
-      // If user is not found, create a user
-      UserModel.create({
-        username: profile.username!, //TODO: saying this is never undefined is bad practice, but I'm open to suggestions
-        nickname: profile.displayName,
-        accountCreated: new Date(),
-        lastLogin: new Date(),
-        roles: ["USER"],
-        auth: {
-          provider: profile.provider,
-          id: profile.id,
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        },
-      });
-    })
+        // If user is not found, create one
+        UserModel.create({
+          username: profile.username!, //TODO: saying this is never undefined is bad practice, but I'm open to suggestions
+          nickname: profile.displayName,
+          accountCreated: new Date(),
+          lastLogin: new Date(),
+          roles: ["USER"],
+          auth: {
+            provider: profile.provider,
+            id: profile.id,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          },
+        }).then((user) => {
+          return done(null, user);
+        });
+      })
       .catch((e) => {
         return done(e, null);
-      })
-      .then((user) => {
-        return done(null, user);
       });
   }
 
@@ -145,7 +141,7 @@ export class Authentication {
             callbackURL: this.options.githubStragety.callbackURL,
             scope: ["read:user"],
           },
-          this.authUser
+          this.authOAuth
         )
       );
     }
@@ -159,7 +155,7 @@ export class Authentication {
             clientSecret: this.options.googleStragety.clientSecret,
             callbackURL: this.options.googleStragety.callbackURL,
           },
-          this.authUser
+          this.authOAuth
         )
       );
     }
@@ -174,7 +170,7 @@ export class Authentication {
             callbackURL: this.options.discordStragety.callbackURL,
             scope: ["identify", "email"],
           },
-          this.authUser
+          this.authOAuth
         )
       );
     }

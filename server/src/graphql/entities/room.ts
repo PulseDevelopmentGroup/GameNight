@@ -16,17 +16,17 @@ export class Room {
 
   @Authorized()
   @Field()
-  @Property({ index: true, unique: true, required: true })
+  @Property({ required: true })
   code: string;
 
   @Authorized()
   @Field((type) => [User])
-  @Property({ type: () => [User], required: true })
+  @Property({ ref: User, required: true })
   members: Ref<User>[];
 
   @Authorized()
   @Field((type) => [Vote], { nullable: true })
-  @Property({ type: () => Vote, default: [] })
+  @Property({ ref: Vote, default: [] })
   gameVotes?: Vote[];
 
   @Authorized()
@@ -36,12 +36,12 @@ export class Room {
 
   @Authorized()
   @Field((type) => [Game], { nullable: true })
-  @Property({ type: () => Game })
+  @Property({ ref: Game })
   gameHistory?: Ref<Game>[];
 
   @Authorized()
   @Field()
-  @Property({ required: true })
+  @Property({ default: new Date(), required: true })
   dateCreated: Date;
 
   public static async generateCode(

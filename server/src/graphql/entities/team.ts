@@ -15,7 +15,7 @@ export class Team {
   name: string;
 
   @Field((type) => [User])
-  @Property({ type: () => [User], required: true })
+  @Property({ ref: User, required: true })
   members: Ref<User>[];
 }
 

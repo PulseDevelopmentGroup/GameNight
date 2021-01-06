@@ -16,11 +16,11 @@ export class Game {
   active: boolean;
 
   @Field((type) => Team, { nullable: true })
-  @Property({ type: () => [Team] })
+  @Property({ ref: Team })
   winners?: Ref<Team>[];
 
   @Field((type) => Team, { nullable: true })
-  @Property({ type: () => [Team] })
+  @Property({ ref: Team })
   teams?: Ref<Team>[];
 
   @Field()

@@ -12,11 +12,6 @@ export interface Environment {
   dbUser: string;
   dbPass: string;
 
-  redisAddr: string;
-  redisPort: number;
-  redisUser: string;
-  redisPass: string;
-
   authGithubID: string;
   authGithubSecret: string;
   authGoogleID: string;
@@ -38,10 +33,6 @@ export const getEnvironment = () => {
       dbName: process.env.GAMENIGHT_DB_NAME ?? "gamenight",
       dbUser: process.env.GAMENIGHT_DB_USER ?? "admin",
       dbPass: process.env.GAMENIGHT_DB_PASS ?? "",
-      redisAddr: process.env.GAMENIGHT_REDIS_ADDR ?? "",
-      redisPort: Number(process.env.GAMENIGHT_REDIS_PORT) ?? 6379,
-      redisUser: process.env.GAMENIGHT_REDIS_USER ?? "admin",
-      redisPass: process.env.GAMENIGHT_REDIS_PASS ?? "",
       authGithubID: process.env.GAMENIGHT_AUTH_GITHUB_CLIENT_ID ?? "",
       authGithubSecret: process.env.GAMENIGHT_AUTH_GITHUB_CLIENT_SECRET ?? "",
       authDiscordID: process.env.GAMENIGHT_AUTH_DISCORD_CLIENT_ID ?? "",
@@ -50,7 +41,7 @@ export const getEnvironment = () => {
       authGoogleSecret: process.env.GAMENIGHT_AUTH_GOOGLE_CLIENT_SECRET ?? "",
     };
 
-    if (!env.httpScrt || !env.dbAddr || !env.dbPass || !env.redisAddr) {
+    if (!env.httpScrt || !env.dbAddr || !env.dbPass) {
       return rej(
         new Error(
           "GAMENIGHT_HTTP_SECRET or GAMENIGHT_DB_ADDR or GAMENIGHT_DB_PASS not set"

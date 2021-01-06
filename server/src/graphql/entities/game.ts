@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { prop as Property } from "@typegoose/typegoose";
 import { Field, InterfaceType } from "type-graphql";
 import { ObjectId } from "mongodb";
-import { Ref } from "../../types";
+import { Ref } from "../types";
 import { Team } from "./team";
 import { getModel } from "../helpers";
 

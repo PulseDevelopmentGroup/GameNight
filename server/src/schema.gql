@@ -30,14 +30,18 @@ type GameMeta {
   name: String!
 }
 
+type Mutation {
+  createRoom: Room!
+  joinRoom(code: String!): Room!
+}
+
 """Mongo object id scalar type"""
 scalar ObjectId
 
 type Query {
-  room(roomId: ObjectId!): Room
-  roomByCode(roomCode: ObjectId!): Room
+  room(code: String, id: ObjectId): Room
   rooms: [Room!]!
-  user(userId: ObjectId!): User
+  user(id: ObjectId, username: String): User
   users: [User!]!
 }
 
@@ -64,8 +68,10 @@ scalar URL
 
 type User {
   _id: ObjectId!
+  accountCreated: DateTime!
   auth: Auth
   image: URL
+  lastLogin: DateTime!
   nickname: String
   username: String!
 }

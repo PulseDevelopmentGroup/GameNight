@@ -1,26 +1,41 @@
 import "reflect-metadata";
 import { ObjectId } from "mongodb";
-import { Resolver, Query, Arg, FieldResolver, Root } from "type-graphql";
+import {
+  Resolver,
+  Query,
+  Arg,
+  FieldResolver,
+  Root,
+  Authorized,
+  Mutation,
+  Ctx,
+} from "type-graphql";
 import { ObjectIdScalar } from "../scalars";
 import { Room, RoomModel } from "../entities/room";
 import { User, UserModel } from "../entities/user";
 import { Game, GameModel } from "../entities/game";
+import { Context } from "../types";
 
 @Resolver((of) => Room)
 export class RoomResolver {
-  // Get room by ID
-  @Query((returns) => Room, { nullable: true })
-  room(@Arg("roomId", (type) => ObjectIdScalar) roomId: ObjectId) {
-    return RoomModel.findById(roomId);
-  }
+  /* === Query Resolvers === */
 
-  // Get room by code
+  // Get room by ID or code
   @Query((returns) => Room, { nullable: true })
-  roomByCode(@Arg("roomCode", (type) => ObjectIdScalar) roomCode: string) {
-    return RoomModel.findOne({ code: roomCode });
+  room(
+    @Arg("id", (type) => ObjectIdScalar, { nullable: true }) id: ObjectId,
+    @Arg("code", { nullable: true }) code: string
+  ) {
+    if (id) {
+      return RoomModel.findById(id);
+    }
+    if (code) {
+      return RoomModel.findOne({ code: code });
+    }
   }
 
   // Get all rooms
+  @Authorized(["ADMIN"])
   @Query((returns) => [Room])
   async rooms(): Promise<Room[]> {
     return await RoomModel.find({});
@@ -31,12 +46,12 @@ export class RoomResolver {
   async members(@Root() room: Room): Promise<User[]> {
     let users: User[] = [];
 
-    room.members.forEach(async (id) => {
-      const user = await UserModel.findById(id);
+    for (const m of room.members) {
+      const user = await UserModel.findById(m);
       if (user) {
         users.push(user);
       }
-    });
+    }
 
     return users;
   }
@@ -46,13 +61,57 @@ export class RoomResolver {
   async gameHistory(@Root() room: Room): Promise<Game[]> {
     let games: Game[] = [];
 
-    room.gameHistory?.forEach(async (id) => {
-      const game = await GameModel.findById(id);
-      if (game) {
-        games.push(game);
+    if (room.gameHistory) {
+      for (const g of room.gameHistory) {
+        const game = await GameModel.findById(g);
+        if (game) {
+          games.push(game);
+        }
       }
-    });
+    }
 
     return games;
+  }
+
+  /* === Mutation Resolvers === */
+  @Mutation((returns) => Room)
+  async createRoom(@Ctx() ctx: Context): Promise<Room> {
+    return new Promise<Room>(async (res, rej) => {
+      if (!ctx.user) {
+        return rej("No user found in context... Probably an auth problem?"); //TODO: Standardize and centralize errors
+      }
+
+      const code = await RoomModel.generateCode();
+      return res(
+        await RoomModel.create({
+          code: code,
+          members: [ctx.user],
+          dateCreated: new Date(),
+        })
+      );
+    });
+  }
+
+  @Mutation((returns) => Room)
+  async joinRoom(
+    @Arg("code") code: string,
+    @Ctx() ctx: Context
+  ): Promise<Room> {
+    return new Promise<Room>(async (res, rej) => {
+      if (!ctx.user) {
+        return rej("No user found in context... Probably an auth problem?"); //TODO: Standardize and centralize errors
+      }
+
+      const room = await RoomModel.findOneAndUpdate(
+        { code: code },
+        { $addToSet: { members: ctx.user } },
+        { new: true }
+      );
+      if (room) {
+        return res(room);
+      }
+
+      return rej(`No room found with code: ${code}`);
+    });
   }
 }

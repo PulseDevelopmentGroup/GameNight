@@ -16,9 +16,9 @@ export class Auth {
 
   @Field()
   @Property()
-  accessToken: string;
+  accessToken?: string;
 
   @Field()
   @Property()
-  refreshToken: string;
+  refreshToken?: string;
 }

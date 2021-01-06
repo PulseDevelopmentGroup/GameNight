@@ -101,6 +101,7 @@ export class Authentication {
 
       // If user is found, use that user for auth
       if (user) {
+        user.lastLogin = new Date();
         return done(null, user);
       }
 
@@ -108,6 +109,8 @@ export class Authentication {
       UserModel.create({
         username: profile.username!, //TODO: saying this is never undefined is bad practice, but I'm open to suggestions
         nickname: profile.displayName,
+        accountCreated: new Date(),
+        lastLogin: new Date(),
         roles: ["USER"],
         auth: {
           provider: profile.provider,
@@ -128,6 +131,8 @@ export class Authentication {
   /**
    * Passport setup function specifying the login strageties to use
    * and creating the serializers and deserializers
+   *
+   * TODO: Support token refreshing (somehow) with: https://www.npmjs.com/package/passport-oauth2-refresh
    */
   setupPassport() {
     // Setup GitHub login

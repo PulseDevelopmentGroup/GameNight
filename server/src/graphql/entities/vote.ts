@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { ModelOptions, prop as Property } from "@typegoose/typegoose";
 import { Field, ObjectType } from "type-graphql";
 import { User } from "./user";
-import { Ref } from "../../types";
+import { Ref } from "../types";
 import { GameMeta } from "./gameMeta";
 
 @ObjectType()

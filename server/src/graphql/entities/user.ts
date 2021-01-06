@@ -21,12 +21,19 @@ export class User {
   @Property()
   nickname?: string;
 
+  @Field()
+  @Property({ required: true })
+  accountCreated: Date;
+
+  @Field()
+  @Property({ required: true })
+  lastLogin: Date;
+
   @Authorized()
   @Field({ nullable: true })
   @Property()
   image?: URL;
 
-  // TODO: Take a closer look at these fields, they may not be required to be part of the GQL schema
   @Authorized(["ADMIN"])
   @Property({ type: () => [String], required: true, default: ["USER"] })
   roles: string[];

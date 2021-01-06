@@ -60,14 +60,6 @@ services:
     logging:
       driver: none
 
-  redis:
-    container_name: redis
-    image: bitnami/redis:latest
-    environment:
-      ALLOW_EMPTY_PASSWORD: "yes"
-    networks:
-      - backend
-
 networks:
   frontend:
     driver: bridge

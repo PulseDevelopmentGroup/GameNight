@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express, { Express } from "express";
-import { ApolloServer } from "apollo-server-express";
+import { ApolloServer, PubSub } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { GraphQLSchema } from "graphql";
 import { connect } from "mongoose";
@@ -10,7 +10,6 @@ import { ObjectId } from "mongodb";
 import passport from "passport";
 import path from "path";
 import { URL } from "url";
-import Redis, { RedisOptions } from "ioredis";
 
 import { ObjectIdScalar, URLScalar } from "./graphql/scalars";
 import { RoomResolver } from "./graphql/resolvers/room";
@@ -77,13 +76,6 @@ async function init() {
     socketTimeoutMS: env.debug ? 10000 : undefined,
   });
 
-  // Configure Redis
-  const redisOptions: RedisOptions = {
-    host: env.redisAddr,
-    port: env.redisPort,
-    retryStrategy: (times) => Math.max(times * 100, 3000),
-  };
-
   // Build schema and generate GraphQL schema file
   schema = await buildSchema({
     resolvers: [RoomResolver, UserResolver],
@@ -96,10 +88,7 @@ async function init() {
     ],
     authChecker: env.auth ? auth.gqlAuthChecker : undefined,
     validate: false,
-    pubSub: new RedisPubSub({
-      publisher: new Redis(redisOptions),
-      subscriber: new Redis(redisOptions),
-    }),
+    pubSub: new PubSub(), // If the backend is to be distributed, use Redis here
   });
 
   // Initialize ApolloServer
@@ -121,6 +110,8 @@ async function init() {
       },
     },
     // Ensure user is logged in before accessing GraphQL endpoint
+    // Note: There is still authorization after this (in the schema)
+    // but this is where the authentication ends.
     context: env.auth
       ? async ({ req }) => {
           if (req.user) {

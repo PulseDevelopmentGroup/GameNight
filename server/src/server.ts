@@ -5,7 +5,7 @@ import express, { Express } from "express";
 import { ApolloServer, PubSub } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { GraphQLSchema } from "graphql";
-import { connect } from "mongoose";
+import mongoose from "mongoose";
 import { ObjectId } from "mongodb";
 import passport from "passport";
 import path from "path";
@@ -43,36 +43,37 @@ async function init() {
   // Initialize webserver
   server = express();
 
-  if (env.auth) {
-    // Setup authentication
-    auth = new Authentication({
-      server,
-      httpSecret: env.httpScrt,
-      githubStragety: {
-        clientID: env.authGithubID,
-        clientSecret: env.authGithubSecret,
-        callbackURL: "http://localhost:4001/auth/external/github/callback",
-      },
-      discordStragety: {
-        clientID: env.authDiscordID,
-        clientSecret: env.authDiscordSecret,
-        callbackURL: "http://localhost:4001/auth/external/discord/callback",
-      },
-    });
-  }
-
   // Connect to database
-  await connect(`mongodb://${env.dbAddr}:${env.dbPort}`, {
-    auth: {
-      user: env.dbUser,
-      password: env.dbPass,
+  const mongo = await mongoose.connect(
+    `mongodb://${env.dbAddr}:${env.dbPort}`,
+    {
+      auth: {
+        user: env.dbUser,
+        password: env.dbPass,
+      },
+      dbName: env.dbName,
+      useCreateIndex: true,
+      useUnifiedTopology: true,
+      useNewUrlParser: true,
+      serverSelectionTimeoutMS: env.debug ? 10000 : undefined,
+      socketTimeoutMS: env.debug ? 10000 : undefined,
+    }
+  );
+
+  // Setup authentication
+  auth = new Authentication({
+    server,
+    url: env.url,
+    secret: env.httpScrt,
+    db: mongo,
+    githubStragety: {
+      clientID: env.authGithubID,
+      clientSecret: env.authGithubSecret,
     },
-    dbName: env.dbName,
-    useCreateIndex: true,
-    useUnifiedTopology: true,
-    useNewUrlParser: true,
-    serverSelectionTimeoutMS: env.debug ? 10000 : undefined,
-    socketTimeoutMS: env.debug ? 10000 : undefined,
+    discordStragety: {
+      clientID: env.authDiscordID,
+      clientSecret: env.authDiscordSecret,
+    },
   });
 
   // Build schema and generate GraphQL schema file
@@ -85,7 +86,7 @@ async function init() {
       { type: ObjectId, scalar: ObjectIdScalar },
       { type: URL, scalar: URLScalar },
     ],
-    authChecker: env.auth ? auth.gqlAuthChecker : undefined,
+    authChecker: auth.gqlAuthChecker,
     validate: false,
     pubSub: new PubSub(), // If the backend is to be distributed, use Redis here
   });
@@ -111,18 +112,16 @@ async function init() {
     // Ensure user is logged in before accessing GraphQL endpoint
     // Note: There is still authorization after this (in the schema)
     // but this is where the authentication ends.
-    context: env.auth
-      ? async ({ req }) => {
-          if (req.user) {
-            return {
-              req,
-              user: await UserModel.findById(req.user._id),
-            };
-          }
+    context: async ({ req }) => {
+      if (req.user) {
+        return {
+          req,
+          user: await UserModel.findById(req.user._id),
+        };
+      }
 
-          throw new Error("You must be logged in");
-        }
-      : undefined,
+      throw new Error("You must be logged in");
+    },
   });
 }
 
@@ -130,53 +129,47 @@ async function init() {
  * Main function (Not that we need a whole comment to mention that)
  */
 function main() {
-  if (env.auth) {
-    // Initialize Passport strageties
-    auth.setupPassport();
+  // Initialize Passport strageties
+  auth.setupPassport();
 
-    // Register auth middlewares
-    auth.registerMiddlewares();
+  // Register auth middlewares
+  auth.registerMiddlewares();
 
-    server.get("/login", (_, res) => {
-      res.send(`
+  server.get("/login", (_, res) => {
+    res.send(`
         <a href="/auth/external/github">GitHub</a>
         <a href="/auth/external/discord">Discord</a>
       `);
-    });
+  });
 
-    server.get("/logout", (_, res) => {
-      res.redirect("/auth/logout");
-    });
+  server.get("/logout", (_, res) => {
+    res.redirect("/auth/logout");
+  });
 
-    server.get(["/logout", "/auth/logout"], (req, res) => {
-      req.logout();
-      res.redirect("/");
-    });
+  server.get(["/logout", "/auth/logout"], (req, res) => {
+    req.logout();
+    res.redirect("/");
+  });
 
-    server.get("/auth/external/discord", passport.authenticate("discord"));
+  server.get("/auth/external/discord", passport.authenticate("discord"));
 
-    server.get(
-      "/auth/external/discord/callback",
-      passport.authenticate("discord", {
-        failureRedirect: "/login",
-      }),
-      (_, res) => {
-        res.redirect("/");
-      }
-    );
+  server.get(
+    "/auth/external/discord/callback",
+    passport.authenticate("discord", {
+      failureRedirect: "/login",
+      successRedirect: "/",
+    })
+  );
 
-    server.get("/auth/external/github", passport.authenticate("github"));
+  server.get("/auth/external/github", passport.authenticate("github"));
 
-    server.get(
-      "/auth/external/github/callback",
-      passport.authenticate("github", {
-        failureRedirect: "/login",
-      }),
-      (_, res) => {
-        res.redirect("/");
-      }
-    );
-  }
+  server.get(
+    "/auth/external/github/callback",
+    passport.authenticate("github", {
+      failureRedirect: "/login",
+      successRedirect: "/",
+    })
+  );
 
   server.get("/", (req, res) => {
     if (req.user) {

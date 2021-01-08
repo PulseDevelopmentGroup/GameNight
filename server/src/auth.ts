@@ -4,14 +4,19 @@ import { Strategy as GitHubStrategy } from "passport-github2";
 import { Strategy as GoogleStragety } from "passport-google-oauth20";
 import { Strategy as DiscordStragety } from "passport-discord";
 import { Express } from "express";
-import cookieSession from "cookie-session";
+import session from "express-session";
 
 import { UserModel } from "./graphql/entities/user";
 import { User } from "./graphql/entities/user";
+import { URL } from "url";
+//import { MongoStore } from "connect-mongo";
+import { Mongoose } from "mongoose";
 
 interface AuthenticationOptions {
   server: Express;
-  httpSecret: string;
+  secret: string;
+  url: URL;
+  db: Mongoose;
   githubStragety?: OAuthOptions;
   googleStragety?: OAuthOptions;
   discordStragety?: OAuthOptions;
@@ -20,7 +25,7 @@ interface AuthenticationOptions {
 interface OAuthOptions {
   clientID: string;
   clientSecret: string;
-  callbackURL: string;
+  callbackURL?: string;
 }
 
 interface gqlAuthContext {
@@ -33,10 +38,16 @@ export class Authentication {
 
   constructor(options: AuthenticationOptions) {
     this.options = options;
-    this.sessionMiddleware = cookieSession({
-      maxAge: 24 * 60 * 60 * 1000,
-      keys: [this.options.httpSecret],
-      sameSite: true,
+    this.sessionMiddleware = session({
+      secret: this.options.secret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: this.options.url.protocol == "https:",
+        maxAge: 24 * 60 * 60 * 1000,
+        signed: true,
+      },
+      /* store: new MongoStore({}), */ // TODO: Setup mongo session storage
     });
   }
 
@@ -138,7 +149,9 @@ export class Authentication {
           {
             clientID: this.options.githubStragety.clientID,
             clientSecret: this.options.githubStragety.clientSecret,
-            callbackURL: this.options.githubStragety.callbackURL,
+            callbackURL:
+              this.options.githubStragety.callbackURL ??
+              this.options.url.toString() + "auth/external/github/callback",
             scope: ["read:user"],
           },
           this.authOAuth
@@ -153,7 +166,10 @@ export class Authentication {
           {
             clientID: this.options.googleStragety.clientID,
             clientSecret: this.options.googleStragety.clientSecret,
-            callbackURL: this.options.googleStragety.callbackURL,
+            callbackURL:
+              this.options.googleStragety.callbackURL ??
+              this.options.url.toString() + "auth/external/google/callback",
+            scope: ["read:user"],
           },
           this.authOAuth
         )
@@ -167,7 +183,9 @@ export class Authentication {
           {
             clientID: this.options.discordStragety.clientID,
             clientSecret: this.options.discordStragety.clientSecret,
-            callbackURL: this.options.discordStragety.callbackURL,
+            callbackURL:
+              this.options.discordStragety.callbackURL ??
+              this.options.url.toString() + "auth/external/discord/callback",
             scope: ["identify", "email"],
           },
           this.authOAuth

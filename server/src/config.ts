@@ -1,6 +1,9 @@
+import { URL } from "url";
+
 export interface Environment {
   debug: boolean;
-  auth: boolean;
+
+  url: URL;
 
   httpAddr: string;
   httpPort: number;
@@ -22,17 +25,21 @@ export interface Environment {
 
 export const getEnvironment = () => {
   return new Promise<Environment>((res, rej) => {
+    if (!process.env.GAMENIGHT_URL) {
+      return rej(new Error("GAMENIGHT_URL not set"));
+    }
+
     let env: Environment = {
       debug: Boolean(process.env.GAMENIGHT_DEBUG) ?? false,
-      auth: Boolean(process.env.GAMENIGHT_AUTH) ?? true,
+      url: new URL(process.env.GAMENIGHT_URL!),
       httpAddr: process.env.GAMENIGHT_HTTP_ADDR ?? "0.0.0.0",
       httpPort: Number(process.env.GAMENIGHT_HTTP_PORT) ?? 8080,
-      httpScrt: process.env.GAMENIGHT_HTTP_SECRET ?? "",
-      dbAddr: process.env.GAMENIGHT_DB_ADDR ?? "",
+      httpScrt: process.env.GAMENIGHT_HTTP_SECRET!,
+      dbAddr: process.env.GAMENIGHT_DB_ADDR!,
       dbPort: Number(process.env.GAMENIGHT_DB_PORT) ?? 27017,
       dbName: process.env.GAMENIGHT_DB_NAME ?? "gamenight",
       dbUser: process.env.GAMENIGHT_DB_USER ?? "admin",
-      dbPass: process.env.GAMENIGHT_DB_PASS ?? "",
+      dbPass: process.env.GAMENIGHT_DB_PASS!,
       authGithubID: process.env.GAMENIGHT_AUTH_GITHUB_CLIENT_ID ?? "",
       authGithubSecret: process.env.GAMENIGHT_AUTH_GITHUB_CLIENT_SECRET ?? "",
       authDiscordID: process.env.GAMENIGHT_AUTH_DISCORD_CLIENT_ID ?? "",

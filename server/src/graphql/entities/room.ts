@@ -1,12 +1,12 @@
 import "reflect-metadata";
 import { prop as Property, ReturnModelType } from "@typegoose/typegoose";
-import { Authorized, Field, ObjectType } from "type-graphql";
-import { User } from "./user";
 import { ObjectId } from "mongodb";
+import { Authorized, Field, ObjectType } from "type-graphql";
+import { getModel } from "../helpers";
 import { Ref } from "../types";
 import { Game } from "./game";
+import { User } from "./user";
 import { Vote } from "./vote";
-import { getModel } from "../helpers";
 
 @ObjectType()
 export class Room {

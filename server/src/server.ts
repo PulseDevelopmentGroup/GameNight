@@ -109,18 +109,19 @@ async function init() {
         });
       },
     },
-    // Ensure user is logged in before accessing GraphQL endpoint
-    // Note: There is still authorization after this (in the schema)
-    // but this is where the authentication ends.
+    // Get user from the request. If the request doesn't contain a user
+    // or the user does not exist don't return a user.
     context: async ({ req }) => {
       if (req.user) {
-        return {
-          req,
-          user: await UserModel.findById(req.user._id),
-        };
+        UserModel.findById(req.user._id)
+          .then((user) => {
+            return { req, user };
+          })
+          .catch(() => {
+            return { req };
+          });
       }
-
-      throw new Error("You must be logged in");
+      return { req };
     },
   });
 }

@@ -85,8 +85,10 @@ export class RoomResolver {
         return rej("No user found in context... Probably an auth problem?"); //TODO: Standardize and centralize errors
       }
 
+      const room = await ctx.user.getRoom();
+
       const code = await RoomModel.generateCode();
-      // TODO: Will have to check if user is in another room and remove them from that room first
+
       return res(
         await RoomModel.create({
           code: code,
@@ -184,6 +186,4 @@ export class RoomResolver {
   }
 
   /* === Helper Functions (Not Resolvers) === */
-
-  //TODO:
 }

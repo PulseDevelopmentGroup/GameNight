@@ -1,5 +1,9 @@
 import "reflect-metadata";
-import { prop as Property, ReturnModelType } from "@typegoose/typegoose";
+import {
+  prop as Property,
+  ReturnModelType,
+  DocumentType,
+} from "@typegoose/typegoose";
 import { ObjectId } from "mongodb";
 import { Authorized, Field, ObjectType } from "type-graphql";
 import { getModel } from "../helpers";

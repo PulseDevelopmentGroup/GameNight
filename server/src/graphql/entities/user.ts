@@ -1,10 +1,11 @@
 import "reflect-metadata";
-import { prop as Property } from "@typegoose/typegoose";
+import { DocumentType, prop as Property } from "@typegoose/typegoose";
 import { Authorized, Field, ObjectType } from "type-graphql";
 import { ObjectId } from "mongodb";
 import { getModel } from "../helpers";
 import { URL } from "url";
 import { Auth } from "./auth";
+import { Room, RoomModel } from "./room";
 
 @ObjectType()
 export class User {
@@ -42,6 +43,15 @@ export class User {
   @Field((type) => Auth, { nullable: true })
   @Property()
   auth?: Auth;
+
+  public async getRoom(this: DocumentType<User>): Promise<Room> {
+    return new Promise<Room>(async (res, rej) => {
+      const room = await RoomModel.findOne({ $in: { members: this._id } });
+
+      if (room) return res(room);
+      return rej("User not found in any rooms");
+    });
+  }
 }
 
 export const UserModel = getModel(User, "users");

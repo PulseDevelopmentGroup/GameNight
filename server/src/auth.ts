@@ -9,8 +9,11 @@ import session from "express-session";
 import { UserModel } from "./graphql/entities/user";
 import { User } from "./graphql/entities/user";
 import { URL } from "url";
-//import { MongoStore } from "connect-mongo";
 import { Mongoose } from "mongoose";
+
+import connectMongo from "connect-mongo";
+import { mongoose } from "@typegoose/typegoose";
+const MongoStore = connectMongo(session);
 
 interface AuthenticationOptions {
   server: Express;
@@ -47,7 +50,9 @@ export class Authentication {
         maxAge: 24 * 60 * 60 * 1000,
         signed: true,
       },
-      /* store: new MongoStore({}), */ // TODO: Setup mongo session storage
+      store: new MongoStore({
+        mongooseConnection: mongoose.connection,
+      }),
     });
   }
 

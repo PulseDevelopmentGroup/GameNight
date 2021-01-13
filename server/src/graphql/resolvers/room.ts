@@ -14,7 +14,7 @@ import { ObjectIdScalar } from "../scalars";
 import { Room, RoomModel } from "../entities/room";
 import { User, UserModel } from "../entities/user";
 import { Game, GameModel } from "../entities/game";
-import { Context } from "../types";
+import { RequestContext } from "../types";
 
 @Resolver((of) => Room)
 export class RoomResolver {
@@ -79,13 +79,17 @@ export class RoomResolver {
   /* === Mutation Resolvers === */
   @Authorized()
   @Mutation((returns) => Room)
-  async createRoom(@Ctx() ctx: Context): Promise<Room> {
+  async createRoom(@Ctx() ctx: RequestContext): Promise<Room> {
     return new Promise<Room>(async (res, rej) => {
       if (!ctx.user) {
         return rej("No user found in context... Probably an auth problem?"); //TODO: Standardize and centralize errors
       }
 
-      const room = await ctx.user.getRoom();
+      if (await ctx.user.getRoom())
+        //TODO: Eventually, we may want to give the user a prompt to choose to leave the room or stay
+        return rej(
+          "You must leave your current room before creating a new one"
+        );
 
       const code = await RoomModel.generateCode();
 
@@ -103,7 +107,7 @@ export class RoomResolver {
   @Mutation((returns) => Room)
   async joinRoom(
     @Arg("code") code: string,
-    @Ctx() ctx: Context
+    @Ctx() ctx: RequestContext
   ): Promise<Room> {
     return new Promise<Room>(async (res, rej) => {
       if (!ctx.user) {
@@ -125,17 +129,13 @@ export class RoomResolver {
 
   @Authorized()
   @Mutation((returns) => Boolean)
-  async leaveRoom(@Ctx() ctx: Context): Promise<Boolean> {
+  async leaveRoom(@Ctx() ctx: RequestContext): Promise<Boolean> {
     return new Promise<Boolean>(async (res, rej) => {
       if (!ctx.user) {
         return rej("No user found in context... Probably an auth problem?"); //TODO: Standardize and centralize errors
       }
 
-      const room = await RoomModel.findOneAndUpdate(
-        { $in: { members: ctx.user } },
-        { $pull: { members: ctx.user._id } },
-        { new: true }
-      );
+      const room = await ctx.user.leaveRoom();
 
       if (!room) {
         return rej("Unable find and/or update room");
@@ -151,7 +151,7 @@ export class RoomResolver {
   async delRoom(
     @Arg("id", (type) => ObjectIdScalar, { nullable: true }) id: ObjectId,
     @Arg("code", { nullable: true }) code: string,
-    @Ctx() ctx: Context
+    @Ctx() ctx: RequestContext
   ): Promise<Boolean> {
     return new Promise<Boolean>((res, rej) => {
       if (!ctx.user) {

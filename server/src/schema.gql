@@ -32,7 +32,9 @@ type GameMeta {
 
 type Mutation {
   createRoom: Room!
+  delRoom(code: String, id: ObjectId): Boolean!
   joinRoom(code: String!): Room!
+  leaveRoom: Boolean!
 }
 
 """Mongo object id scalar type"""

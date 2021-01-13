@@ -55,6 +55,7 @@ async function init() {
       useCreateIndex: true,
       useUnifiedTopology: true,
       useNewUrlParser: true,
+      useFindAndModify: true,
       serverSelectionTimeoutMS: env.debug ? 10000 : undefined,
       socketTimeoutMS: env.debug ? 10000 : undefined,
     }
@@ -109,17 +110,10 @@ async function init() {
         });
       },
     },
-    // Get user from the request. If the request doesn't contain a user
-    // or the user does not exist don't return a user.
+    // Get user from the request. If no user is included, return just the request
     context: async ({ req }) => {
       if (req.user) {
-        UserModel.findById(req.user._id)
-          .then((user) => {
-            return { req, user };
-          })
-          .catch(() => {
-            return { req };
-          });
+        return { req, user: req.user };
       }
       return { req };
     },

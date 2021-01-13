@@ -5,11 +5,12 @@ import { Strategy as GoogleStragety } from "passport-google-oauth20";
 import { Strategy as DiscordStragety } from "passport-discord";
 import { Express } from "express";
 import session from "express-session";
-
-import { UserModel } from "./graphql/entities/user";
-import { User } from "./graphql/entities/user";
 import { URL } from "url";
 import { Mongoose } from "mongoose";
+
+import { RequestContext } from "./graphql/types";
+import { UserModel } from "./graphql/entities/user";
+import { User } from "./graphql/entities/user";
 
 import connectMongo from "connect-mongo";
 import { mongoose } from "@typegoose/typegoose";
@@ -29,10 +30,6 @@ interface OAuthOptions {
   clientID: string;
   clientSecret: string;
   callbackURL?: string;
-}
-
-interface gqlAuthContext {
-  user?: User;
 }
 
 export class Authentication {
@@ -61,7 +58,7 @@ export class Authentication {
    * Authenticate GraphQL queries
    *
    */
-  gqlAuthChecker: AuthChecker<gqlAuthContext> = (
+  gqlAuthChecker: AuthChecker<RequestContext> = (
     { context: { user } },
     roles
   ) => {

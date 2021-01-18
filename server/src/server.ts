@@ -88,7 +88,6 @@ async function init() {
       { type: URL, scalar: URLScalar },
     ],
     authChecker: auth.gqlAuthChecker,
-    validate: false,
     pubSub: new PubSub(), // If the backend is to be distributed, use Redis here
   });
 
@@ -103,12 +102,6 @@ async function init() {
     schema,
     subscriptions: {
       path: "/subscriptions",
-      onConnect: (_, ws: any) => {
-        console.log(ws.upgradeReq);
-        auth.sessionMiddleware(ws.upgradeReq, {} as any, () => {
-          console.log(ws.upgradeReq.session);
-        });
-      },
     },
     // Get user from the request. If no user is included, return just the request
     context: async ({ req }) => {

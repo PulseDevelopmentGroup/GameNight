@@ -74,3 +74,5 @@ export class Room {
 }
 
 export const RoomModel = getModel(Room, "rooms");
+
+export const codeRegex = /[A-Z]{6}/i;

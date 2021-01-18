@@ -32,7 +32,7 @@ type GameMeta {
 
 type Mutation {
   createRoom: Room!
-  delRoom(code: String, id: ObjectId): Boolean!
+  deleteRoom(code: String, id: ObjectId): Boolean!
   joinRoom(code: String!): Room!
   leaveRoom: Boolean!
 }
@@ -41,8 +41,8 @@ type Mutation {
 scalar ObjectId
 
 type Query {
-  room(code: String, id: ObjectId): Room
-  rooms: [Room!]!
+  getRoom(code: String, id: ObjectId): Room
+  getRooms: [Room!]!
   user(id: ObjectId, username: String): User
   users: [User!]!
 }

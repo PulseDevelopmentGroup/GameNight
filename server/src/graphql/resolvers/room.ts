@@ -1,32 +1,32 @@
 import "reflect-metadata";
-import { ObjectId } from "mongodb";
 import {
   Resolver,
   Query,
-  Arg,
   FieldResolver,
   Root,
   Authorized,
   Mutation,
   Ctx,
+  Args,
 } from "type-graphql";
-import { ObjectIdScalar } from "../scalars";
 import { Room, RoomModel } from "../entities/room";
 import { User, UserModel } from "../entities/user";
 import { Game, GameModel } from "../entities/game";
 import { RequestContext } from "../types";
+import { RoomArgs, JoinRoomArgs } from "./room.inputs";
 
 @Resolver((of) => Room)
 export class RoomResolver {
-  /* === Query Resolvers === */
+  /* 
+  
+  === Query Resolvers === 
+  
+  */
 
   // Get room by ID or code
   @Authorized()
   @Query((returns) => Room, { nullable: true })
-  room(
-    @Arg("id", (type) => ObjectIdScalar, { nullable: true }) id: ObjectId,
-    @Arg("code", { nullable: true }) code: string
-  ) {
+  getRoom(@Args() { id, code }: RoomArgs) {
     if (id) {
       return RoomModel.findById(id);
     }
@@ -38,45 +38,16 @@ export class RoomResolver {
   // Get all rooms
   @Authorized(["ADMIN"])
   @Query((returns) => [Room])
-  async rooms(): Promise<Room[]> {
+  async getRooms(): Promise<Room[]> {
     return await RoomModel.find({});
   }
 
-  // Get list of users associated with the room
-  @Authorized()
-  @FieldResolver()
-  async members(@Root() room: Room): Promise<User[]> {
-    let users: User[] = [];
+  /* 
+  
+  === Mutation Resolvers === 
+  
+  */
 
-    for (const m of room.members) {
-      const user = await UserModel.findById(m);
-      if (user) {
-        users.push(user);
-      }
-    }
-
-    return users;
-  }
-
-  // Get a room's game history
-  @Authorized()
-  @FieldResolver()
-  async gameHistory(@Root() room: Room): Promise<Game[]> {
-    let games: Game[] = [];
-
-    if (room.gameHistory) {
-      for (const g of room.gameHistory) {
-        const game = await GameModel.findById(g);
-        if (game) {
-          games.push(game);
-        }
-      }
-    }
-
-    return games;
-  }
-
-  /* === Mutation Resolvers === */
   @Authorized()
   @Mutation((returns) => Room)
   async createRoom(@Ctx() ctx: RequestContext): Promise<Room> {
@@ -106,7 +77,7 @@ export class RoomResolver {
   @Authorized()
   @Mutation((returns) => Room)
   async joinRoom(
-    @Arg("code") code: string,
+    @Args() { code }: JoinRoomArgs,
     @Ctx() ctx: RequestContext
   ): Promise<Room> {
     return new Promise<Room>(async (res, rej) => {
@@ -138,7 +109,7 @@ export class RoomResolver {
       const room = await ctx.user.leaveRoom();
 
       if (!room) {
-        return rej("Unable find and/or update room");
+        return rej("Unable to leave room. User has already left.");
       }
 
       //TODO: Something to inform the other users that somebody left
@@ -148,9 +119,8 @@ export class RoomResolver {
 
   @Authorized(["ADMIN"])
   @Mutation((returns) => Boolean)
-  async delRoom(
-    @Arg("id", (type) => ObjectIdScalar, { nullable: true }) id: ObjectId,
-    @Arg("code", { nullable: true }) code: string,
+  async deleteRoom(
+    @Args() { id, code }: RoomArgs,
     @Ctx() ctx: RequestContext
   ): Promise<Boolean> {
     return new Promise<Boolean>((res, rej) => {
@@ -185,5 +155,49 @@ export class RoomResolver {
     });
   }
 
-  /* === Helper Functions (Not Resolvers) === */
+  /* 
+  
+  === Subscription Resolvers === 
+  
+  */
+
+  /* 
+  
+  === Field Resolvers ===
+  
+  */
+
+  // Get list of users associated with the room
+  @Authorized()
+  @FieldResolver()
+  async members(@Root() room: Room): Promise<User[]> {
+    let users: User[] = [];
+
+    for (const m of room.members) {
+      const user = await UserModel.findById(m);
+      if (user) {
+        users.push(user);
+      }
+    }
+
+    return users;
+  }
+
+  // Get a room's game history
+  @Authorized()
+  @FieldResolver()
+  async gameHistory(@Root() room: Room): Promise<Game[]> {
+    let games: Game[] = [];
+
+    if (room.gameHistory) {
+      for (const g of room.gameHistory) {
+        const game = await GameModel.findById(g);
+        if (game) {
+          games.push(game);
+        }
+      }
+    }
+
+    return games;
+  }
 }

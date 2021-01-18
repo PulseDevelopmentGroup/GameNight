@@ -23,6 +23,10 @@ export class User {
   nickname?: string;
 
   @Field()
+  @Property()
+  guest: boolean;
+
+  @Field()
   @Property({ required: true })
   accountCreated: Date;
 

@@ -7,13 +7,13 @@ import { Express } from "express";
 import session from "express-session";
 import { URL } from "url";
 import { Mongoose } from "mongoose";
+import connectMongo from "connect-mongo";
+import { mongoose } from "@typegoose/typegoose";
 
 import { RequestContext } from "./graphql/types";
 import { UserModel } from "./graphql/entities/user";
 import { User } from "./graphql/entities/user";
 
-import connectMongo from "connect-mongo";
-import { mongoose } from "@typegoose/typegoose";
 const MongoStore = connectMongo(session);
 
 interface AuthenticationOptions {
@@ -93,51 +93,6 @@ export class Authentication {
   }
 
   /**
-   * Internal function for handling the checking and creation of users
-   *
-   * @param accessToken OAuth access token
-   * @param refreshToken OAuth refresh token
-   * @param profile User profile (comes from external provider)
-   * @param done Callback function
-   */
-  private authOAuth(
-    accessToken: string,
-    refreshToken: string,
-    profile: passport.Profile,
-    done: any
-  ) {
-    // Look for user
-    UserModel.findOne({ "auth.id": profile.id })
-      .then((user) => {
-        // If user is found, use that user for auth
-        if (user) {
-          user.updateOne({ lastLogin: new Date() }).exec();
-          return done(null, user);
-        }
-
-        // If user is not found, create one
-        UserModel.create({
-          username: profile.username!, //TODO: saying this is never undefined is bad practice, but I'm open to suggestions
-          nickname: profile.displayName,
-          accountCreated: new Date(),
-          lastLogin: new Date(),
-          roles: ["USER"],
-          auth: {
-            provider: profile.provider,
-            id: profile.id,
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-          },
-        }).then((user) => {
-          return done(null, user);
-        });
-      })
-      .catch((e) => {
-        return done(e, null);
-      });
-  }
-
-  /**
    * Passport setup function specifying the login strageties to use
    * and creating the serializers and deserializers
    *
@@ -210,5 +165,50 @@ export class Authentication {
           done(e);
         });
     });
+  }
+
+  /**
+   * Internal function for handling the checking and creation of users
+   *
+   * @param accessToken OAuth access token
+   * @param refreshToken OAuth refresh token
+   * @param profile User profile (comes from external provider)
+   * @param done Callback function
+   */
+  private authOAuth(
+    accessToken: string,
+    refreshToken: string,
+    profile: passport.Profile,
+    done: any
+  ) {
+    // Look for user
+    UserModel.findOne({ "auth.id": profile.id })
+      .then((user) => {
+        // If user is found, use that user for auth
+        if (user) {
+          user.updateOne({ lastLogin: new Date() }).exec();
+          return done(null, user);
+        }
+
+        // If user is not found, create one
+        UserModel.create({
+          username: profile.username!, //TODO: saying this is never undefined is bad practice, but I'm open to suggestions
+          nickname: profile.displayName,
+          accountCreated: new Date(),
+          lastLogin: new Date(),
+          roles: ["USER"],
+          auth: {
+            provider: profile.provider,
+            id: profile.id,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          },
+        }).then((user) => {
+          return done(null, user);
+        });
+      })
+      .catch((e) => {
+        return done(e, null);
+      });
   }
 }

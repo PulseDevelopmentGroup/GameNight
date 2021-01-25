@@ -203,6 +203,7 @@ export class Authentication {
         UserModel.create({
           username: profile.username!, //TODO: saying this is never undefined is bad practice, but I'm open to suggestions
           nickname: profile.displayName,
+          guest: false,
           accountCreated: new Date(),
           lastLogin: new Date(),
           roles: ["USER"],

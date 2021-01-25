@@ -3,6 +3,7 @@ import passport from "passport";
 import { Strategy as GitHubStrategy } from "passport-github2";
 import { Strategy as GoogleStragety } from "passport-google-oauth20";
 import { Strategy as DiscordStragety } from "passport-discord";
+import { Strategy as LocalStragety } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
 import { URL } from "url";
@@ -99,6 +100,14 @@ export class Authentication {
    * TODO: Support token refreshing (somehow) with: https://www.npmjs.com/package/passport-oauth2-refresh
    */
   setupPassport() {
+    passsport.use(
+      new LocalStragety({
+        usernameField: "username",
+        passwordField: "username",
+        passReqToCallback: true,
+      })
+    );
+
     // Setup GitHub login
     if (this.options.githubStragety) {
       passport.use(
@@ -197,6 +206,7 @@ export class Authentication {
           accountCreated: new Date(),
           lastLogin: new Date(),
           roles: ["USER"],
+          guest: false,
           auth: {
             provider: profile.provider,
             id: profile.id,

@@ -35,6 +35,11 @@ export class User {
   @Property()
   image?: URL;
 
+  @Authorized()
+  @Field()
+  @Property()
+  guest: boolean;
+
   @Authorized(["ADMIN"])
   @Property({ type: () => [String], required: true, default: ["USER"] })
   roles: string[];

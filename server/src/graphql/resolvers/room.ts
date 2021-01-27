@@ -62,7 +62,7 @@ export class RoomResolver {
           "You must leave your current room before creating a new one"
         );
 
-      const code = await RoomModel.generateCode();
+      const code = await RoomModel.getCode();
 
       return res(
         await RoomModel.create({

@@ -11,12 +11,12 @@ export class Team {
   readonly _id: ObjectId;
 
   @Field()
-  @Property()
-  name: string;
+  @Property({ required: true })
+  name!: string;
 
   @Field((type) => [User])
   @Property({ ref: User, required: true })
-  members: Ref<User>[];
+  members!: Ref<User>[];
 }
 
 export const TeamModel = getModel(Team, "teams");

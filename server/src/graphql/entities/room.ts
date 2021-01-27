@@ -1,9 +1,5 @@
 import "reflect-metadata";
-import {
-  prop as Property,
-  ReturnModelType,
-  DocumentType,
-} from "@typegoose/typegoose";
+import { prop as Property, ReturnModelType } from "@typegoose/typegoose";
 import { ObjectId } from "mongodb";
 import { Authorized, Field, ObjectType } from "type-graphql";
 import { getModel } from "../helpers";
@@ -21,12 +17,12 @@ export class Room {
   @Authorized()
   @Field()
   @Property({ required: true })
-  code: string;
+  code!: string;
 
   @Authorized()
   @Field((type) => [User])
   @Property({ ref: User, required: true })
-  members: Ref<User>[];
+  members!: Ref<User>[];
 
   @Authorized()
   @Field((type) => [Vote], { nullable: true })
@@ -46,9 +42,9 @@ export class Room {
   @Authorized()
   @Field()
   @Property({ default: new Date(), required: true })
-  dateCreated: Date;
+  dateCreated!: Date;
 
-  public static async generateCode(
+  public static async getCode(
     this: ReturnModelType<typeof Room>,
     alphabet?: string,
     length?: number,
@@ -67,7 +63,7 @@ export class Room {
     // Woooo recursion
     if (await this.findOne({ code: code }).exec()) {
       console.log(`Code ${code}, exists. Regenerating.`);
-      return this.generateCode(alp, len);
+      return this.getCode(alp, len);
     }
     return code;
   }

@@ -10,9 +10,9 @@ import { GameMeta } from "./gameMeta";
 export class Vote {
   @Field((type) => User)
   @Property({ ref: User, required: true })
-  user: Ref<User>;
+  user!: Ref<User>;
 
   @Field((type) => GameMeta)
   @Property({ ref: GameMeta, required: true })
-  game: Ref<GameMeta>;
+  game!: Ref<GameMeta>;
 }

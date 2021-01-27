@@ -100,12 +100,15 @@ export class Authentication {
    * TODO: Support token refreshing (somehow) with: https://www.npmjs.com/package/passport-oauth2-refresh
    */
   setupPassport() {
-    passsport.use(
-      new LocalStragety({
-        usernameField: "username",
-        passwordField: "username",
-        passReqToCallback: true,
-      })
+    passport.use(
+      new LocalStragety(
+        {
+          usernameField: "username",
+          passwordField: "code",
+          passReqToCallback: true,
+        },
+        (req, username, password, done) => {}
+      )
     );
 
     // Setup GitHub login

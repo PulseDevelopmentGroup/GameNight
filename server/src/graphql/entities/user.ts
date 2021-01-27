@@ -16,42 +16,51 @@ export class User {
   @Authorized()
   @Field()
   @Property({ required: true })
-  username: string;
+  username!: string;
 
   @Field({ nullable: true })
   @Property()
   nickname?: string;
 
+  @Authorized()
   @Field()
-  @Property()
-  guest: boolean;
+  @Property({ required: true })
+  discriminator!: string;
 
   @Field()
   @Property({ required: true })
-  accountCreated: Date;
+  guest!: boolean;
 
   @Field()
   @Property({ required: true })
-  lastLogin: Date;
+  accountCreated!: Date;
+
+  @Field()
+  @Property({ required: true })
+  lastLogin!: Date;
 
   @Authorized()
   @Field({ nullable: true })
   @Property()
   image?: URL;
 
-  @Authorized()
-  @Field()
-  @Property()
-  guest: boolean;
-
   @Authorized(["ADMIN"])
   @Property({ type: () => [String], required: true, default: ["USER"] })
-  roles: string[];
+  roles!: string[];
 
   @Authorized(["ADMIN"])
   @Field((type) => Auth, { nullable: true })
   @Property()
   auth?: Auth;
+
+  public async getDiscriminator(
+    this: User,
+    customDiscriminator?: string
+  ): Promise<string> {
+    return new Promise<string>(async (res) => {
+      let discriminator = customDiscriminator ?? "";
+    });
+  }
 
   public async getRoom(this: User): Promise<Room | null> {
     return new Promise<Room | null>(async (res) => {
